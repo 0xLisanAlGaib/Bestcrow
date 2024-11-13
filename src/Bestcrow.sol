@@ -20,6 +20,7 @@ contract Bestcrow is ReentrancyGuard {
         uint256 expiryDate;
         bool isActive;
         bool isEth;
+        bool isCompleted;
     }
 
     uint256 public nextEscrowId;
@@ -38,6 +39,7 @@ contract Bestcrow is ReentrancyGuard {
     event MilestoneCompleted(uint256 indexed escrowId, uint256 milestone);
     event PaymentReleased(uint256 indexed escrowId, uint256 amount);
     event CollateralReturned(uint256 indexed escrowId, address indexed receiver);
+    event EscrowCompleted(uint256 indexed escrowId, address indexed receiver, uint256 totalAmount);
 
     function createEscrow(address _token, uint256 _amount, uint256 _milestones, uint256 _daysToExpiry)
         external
@@ -64,7 +66,8 @@ contract Bestcrow is ReentrancyGuard {
             completedMilestones: 0,
             expiryDate: block.timestamp + (_daysToExpiry * 1 days),
             isActive: true,
-            isEth: isEth
+            isEth: isEth,
+            isCompleted: false
         });
 
         emit EscrowCreated(
@@ -94,6 +97,7 @@ contract Bestcrow is ReentrancyGuard {
     function requestMilestoneCompletion(uint256 _escrowId) external nonReentrant {
         Escrow storage escrow = escrows[_escrowId];
         require(escrow.isActive, "Escrow not active");
+        require(!escrow.isCompleted, "Escrow already completed");
         require(msg.sender == escrow.receiver, "Only receiver can request");
         require(escrow.completedMilestones < escrow.milestones, "All milestones completed");
 
@@ -117,7 +121,9 @@ contract Bestcrow is ReentrancyGuard {
                 IERC20(escrow.token).safeTransfer(escrow.receiver, escrow.amount);
             }
             escrow.isActive = false;
+            escrow.isCompleted = true;
             emit CollateralReturned(_escrowId, escrow.receiver);
+            emit EscrowCompleted(_escrowId, escrow.receiver, escrow.amount * 2);
         }
     }
 
@@ -145,6 +151,10 @@ contract Bestcrow is ReentrancyGuard {
         }
 
         escrow.isActive = false;
+    }
+
+    function isEscrowCompleted(uint256 _escrowId) external view returns (bool) {
+        return escrows[_escrowId].isCompleted;
     }
 
     // Add this at the end of the contract

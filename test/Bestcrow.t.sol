@@ -7,6 +7,7 @@ import {MockERC20} from "./mocks/MockERC20.sol";
 
 contract BestcrowTest is Test {
     event EscrowAccepted(uint256 indexed escrowId, address indexed receiver);
+    event EscrowCompleted(uint256 indexed escrowId, address indexed receiver, uint256 totalAmount);
 
     Bestcrow public bestcrow;
     MockERC20 public token;
@@ -65,7 +66,7 @@ contract BestcrowTest is Test {
             uint256 _completedMilestones,
             uint256 _expiryDate,
             bool _isActive,
-            bool _isEth
+            bool _isCompleted,
         ) = bestcrow.escrows(escrowId);
 
         // Assert all values are correct
@@ -77,7 +78,7 @@ contract BestcrowTest is Test {
         assertEq(_completedMilestones, 0);
         assertEq(_expiryDate, block.timestamp + (DAYS_TO_EXPIRY * 1 days));
         assertTrue(_isActive);
-        assertTrue(_isEth);
+        assertTrue(_isCompleted);
         assertEq(address(bestcrow).balance, AMOUNT);
     }
 
@@ -98,7 +99,8 @@ contract BestcrowTest is Test {
             uint256 _completedMilestones,
             uint256 _expiryDate,
             bool _isActive,
-            bool _isEth
+            bool _isEth,
+            bool _isCompleted
         ) = bestcrow.escrows(escrowId);
 
         // Assert all values are correct
@@ -111,6 +113,7 @@ contract BestcrowTest is Test {
         assertEq(_expiryDate, block.timestamp + (DAYS_TO_EXPIRY * 1 days));
         assertTrue(_isActive);
         assertFalse(_isEth);
+        assertFalse(_isCompleted);
         assertEq(token.balanceOf(address(bestcrow)), AMOUNT);
     }
 
@@ -148,7 +151,7 @@ contract BestcrowTest is Test {
         bestcrow.acceptEscrow{value: AMOUNT}(_escrowId);
 
         // Get the escrow details
-        (address _depositor, address _receiver,,,,,,,) = bestcrow.escrows(_escrowId);
+        (address _depositor, address _receiver,,,,,,,,) = bestcrow.escrows(_escrowId);
 
         // Assert the escrow state
         assertEq(_receiver, receiver);
@@ -167,7 +170,7 @@ contract BestcrowTest is Test {
         bestcrow.acceptEscrow(escrowId);
 
         // Get the escrow details
-        (address _depositor, address _receiver,,,,,,,) = bestcrow.escrows(escrowId);
+        (address _depositor, address _receiver,,,,,,,,) = bestcrow.escrows(escrowId);
 
         // Assert the escrow state
         assertEq(_receiver, receiver);
@@ -239,5 +242,61 @@ contract BestcrowTest is Test {
         emit EscrowAccepted(escrowId, receiver);
 
         bestcrow.acceptEscrow{value: AMOUNT}(escrowId);
+    }
+
+    function test_escrowCompletionWithEth() public {
+        // Setup escrow
+        uint256 _escrowId = _createEthEscrow();
+
+        // Accept escrow
+        vm.prank(receiver);
+        bestcrow.acceptEscrow{value: AMOUNT}(_escrowId);
+
+        // Complete all milestones
+        for (uint256 i = 0; i < MILESTONES; i++) {
+            vm.prank(receiver);
+
+            // For the last milestone, expect completion event
+            if (i == MILESTONES - 1) {
+                vm.expectEmit(true, true, false, true);
+                emit EscrowCompleted(_escrowId, receiver, AMOUNT * 2);
+            }
+
+            bestcrow.requestMilestoneCompletion(_escrowId);
+        }
+
+        // Check final state
+        assertTrue(bestcrow.isEscrowCompleted(_escrowId));
+        (,,,,,,, bool isActive,,) = bestcrow.escrows(_escrowId);
+        assertFalse(isActive);
+        assertEq(address(bestcrow).balance, 0); // All funds should be released
+    }
+
+    function test_escrowCompletionWithToken() public {
+        // Setup escrow
+        uint256 _escrowId = _createTokenEscrow();
+
+        // Accept escrow
+        vm.prank(receiver);
+        bestcrow.acceptEscrow(_escrowId);
+
+        // Complete all milestones
+        for (uint256 i = 0; i < MILESTONES; i++) {
+            vm.prank(receiver);
+
+            // For the last milestone, expect completion event
+            if (i == MILESTONES - 1) {
+                vm.expectEmit(true, true, false, true);
+                emit EscrowCompleted(_escrowId, receiver, AMOUNT * 2);
+            }
+
+            bestcrow.requestMilestoneCompletion(_escrowId);
+        }
+
+        // Check final state
+        assertTrue(bestcrow.isEscrowCompleted(_escrowId));
+        (,,,,,,,, bool isActive,) = bestcrow.escrows(_escrowId);
+        assertFalse(isActive);
+        assertEq(token.balanceOf(address(bestcrow)), 0); // All funds should be released
     }
 }
