@@ -8,7 +8,7 @@ import {MockERC20} from "./mocks/MockERC20.sol";
 contract BestcrowTest is Test {
     Bestcrow public bestcrow;
     MockERC20 public token;
-    
+
     address public depositor = makeAddr("depositor");
     uint256 public constant AMOUNT = 1 ether;
     uint256 public constant MILESTONES = 4;
@@ -71,12 +71,7 @@ contract BestcrowTest is Test {
         vm.prank(depositor);
 
         // Create escrow with ERC20 token
-        uint256 escrowId = bestcrow.createEscrow(
-            address(token),
-            AMOUNT,
-            MILESTONES,
-            DAYS_TO_EXPIRY
-        );
+        uint256 escrowId = bestcrow.createEscrow(address(token), AMOUNT, MILESTONES, DAYS_TO_EXPIRY);
 
         // Get the created escrow
         (
@@ -127,10 +122,6 @@ contract BestcrowTest is Test {
     function testFail_createEscrowWithIncorrectEthAmount() public {
         vm.prank(depositor);
         bestcrow.createEscrow{value: 0.5 ether}( // Sending wrong amount
-            address(0),
-            AMOUNT,
-            MILESTONES,
-            DAYS_TO_EXPIRY
-        );
+        address(0), AMOUNT, MILESTONES, DAYS_TO_EXPIRY);
     }
 }
