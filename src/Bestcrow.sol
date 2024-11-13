@@ -79,4 +79,80 @@ contract Bestcrow is ReentrancyGuard {
 
         return escrowId;
     }
+
+    function acceptEscrow(uint256 _escrowId) external payable nonReentrant {
+        Escrow storage escrow = escrows[_escrowId];
+        require(escrow.isActive, "Escrow not active");
+        require(block.timestamp < escrow.expiryDate, "Escrow expired");
+        require(escrow.receiver == address(0), "Escrow already accepted");
+        require(msg.sender != escrow.depositor, "Depositor cannot be receiver");
+
+        if (escrow.isEth) {
+            require(msg.value == escrow.amount, "Incorrect collateral amount");
+        } else {
+            IERC20(escrow.token).safeTransferFrom(msg.sender, address(this), escrow.amount);
+        }
+
+        escrow.receiver = msg.sender;
+        emit EscrowAccepted(_escrowId, msg.sender);
+    }
+
+    function requestMilestoneCompletion(uint256 _escrowId) external nonReentrant {
+        Escrow storage escrow = escrows[_escrowId];
+        require(escrow.isActive, "Escrow not active");
+        require(msg.sender == escrow.receiver, "Only receiver can request");
+        require(escrow.completedMilestones < escrow.milestones, "All milestones completed");
+
+        uint256 paymentAmount = escrow.amount / escrow.milestones;
+        escrow.completedMilestones++;
+
+        if (escrow.isEth) {
+            payable(escrow.receiver).transfer(paymentAmount);
+        } else {
+            IERC20(escrow.token).safeTransfer(escrow.receiver, paymentAmount);
+        }
+
+        emit MilestoneCompleted(_escrowId, escrow.completedMilestones);
+        emit PaymentReleased(_escrowId, paymentAmount);
+
+        // Return collateral if this was the final milestone
+        if (escrow.completedMilestones == escrow.milestones) {
+            if (escrow.isEth) {
+                payable(escrow.receiver).transfer(escrow.amount);
+            } else {
+                IERC20(escrow.token).safeTransfer(escrow.receiver, escrow.amount);
+            }
+            escrow.isActive = false;
+            emit CollateralReturned(_escrowId, escrow.receiver);
+        }
+    }
+
+    function refundExpiredEscrow(uint256 _escrowId) external nonReentrant {
+        Escrow storage escrow = escrows[_escrowId];
+        require(escrow.isActive, "Escrow not active");
+        require(block.timestamp >= escrow.expiryDate, "Escrow not expired");
+        
+        if (escrow.receiver == address(0)) {
+            // No receiver joined, return funds to depositor
+            if (escrow.isEth) {
+                payable(escrow.depositor).transfer(escrow.amount);
+            } else {
+                IERC20(escrow.token).safeTransfer(escrow.depositor, escrow.amount);
+            }
+        } else {
+            // Return both deposit and collateral
+            if (escrow.isEth) {
+                payable(escrow.depositor).transfer(escrow.amount);
+                payable(escrow.receiver).transfer(escrow.amount);
+            } else {
+                IERC20(escrow.token).safeTransfer(escrow.depositor, escrow.amount);
+                IERC20(escrow.token).safeTransfer(escrow.receiver, escrow.amount);
+            }
+        }
+        
+        escrow.isActive = false;
+    }
+
+    // Add this at the end of the contract
+    receive() external payable {}
 }
