@@ -33,21 +33,20 @@ contract Bestcrow is ReentrancyGuard {
         uint256 milestones,
         uint256 expiryDate
     );
-    
+
     event EscrowAccepted(uint256 indexed escrowId, address indexed receiver);
     event MilestoneCompleted(uint256 indexed escrowId, uint256 milestone);
     event PaymentReleased(uint256 indexed escrowId, uint256 amount);
     event CollateralReturned(uint256 indexed escrowId, address indexed receiver);
 
-    function createEscrow(
-        address _token,
-        uint256 _amount,
-        uint256 _milestones,
-        uint256 _daysToExpiry
-    ) external payable returns (uint256) {
+    function createEscrow(address _token, uint256 _amount, uint256 _milestones, uint256 _daysToExpiry)
+        external
+        payable
+        returns (uint256)
+    {
         require(_milestones > 0, "Invalid milestone count");
         require(_amount > 0, "Invalid amount");
-        
+
         bool isEth = _token == address(0);
         if (isEth) {
             require(msg.value == _amount, "Incorrect ETH amount");
@@ -69,12 +68,7 @@ contract Bestcrow is ReentrancyGuard {
         });
 
         emit EscrowCreated(
-            escrowId,
-            msg.sender,
-            _token,
-            _amount,
-            _milestones,
-            block.timestamp + (_daysToExpiry * 1 days)
+            escrowId, msg.sender, _token, _amount, _milestones, block.timestamp + (_daysToExpiry * 1 days)
         );
 
         return escrowId;
