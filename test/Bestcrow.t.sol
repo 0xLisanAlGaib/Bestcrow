@@ -7,6 +7,5 @@ import {Bestcrow} from "../src/Bestcrow.sol";
 contract BestcrowTest is Test {
     Bestcrow public bestcrow;
 
-    function test_createEscrow() public {
-    }
+    function test_createEscrow() public {}
 }
