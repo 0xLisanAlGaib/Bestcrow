@@ -131,7 +131,7 @@ contract Bestcrow is ReentrancyGuard {
         Escrow storage escrow = escrows[_escrowId];
         require(escrow.isActive, "Escrow not active");
         require(block.timestamp >= escrow.expiryDate, "Escrow not expired");
-        
+
         if (escrow.receiver == address(0)) {
             // No receiver joined, return funds to depositor
             if (escrow.isEth) {
@@ -149,7 +149,7 @@ contract Bestcrow is ReentrancyGuard {
                 IERC20(escrow.token).safeTransfer(escrow.receiver, escrow.amount);
             }
         }
-        
+
         escrow.isActive = false;
     }
 
