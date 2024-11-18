@@ -47,12 +47,11 @@ contract Bestcrow is ReentrancyGuard, Ownable {
 
     constructor() Ownable(msg.sender) {}
 
-    function createEscrow(
-        address _token,
-        uint256 _amount,
-        uint256 _expiryDate,
-        address _receiver
-    ) external payable returns (uint256) {
+    function createEscrow(address _token, uint256 _amount, uint256 _expiryDate, address _receiver)
+        external
+        payable
+        returns (uint256)
+    {
         require(_amount > 0, "Invalid amount");
         require(_receiver != address(0), "Invalid receiver");
         require(_receiver != msg.sender, "Receiver cannot be depositor");
@@ -60,7 +59,7 @@ contract Bestcrow is ReentrancyGuard, Ownable {
 
         uint256 adminFee = (_amount * ADMIN_FEE_BASIS_POINTS) / BASIS_POINTS_DENOMINATOR;
         bool isEth = _token == address(0);
-        
+
         if (isEth) {
             require(msg.value == _amount + adminFee, "Incorrect ETH amount");
         } else {
