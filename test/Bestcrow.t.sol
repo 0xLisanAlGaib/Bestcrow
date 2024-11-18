@@ -20,9 +20,12 @@ contract BestcrowTest is Test {
     address public receiver = makeAddr("receiver");
     uint256 public escrowId; // We'll use this for setup
 
+    address public adminFeeReceiver = makeAddr("adminFeeReceiver");
+    uint256 public constant ADMIN_FEE_BASIS_POINTS = 50; // 0.5%
+
     function setUp() public {
         // Deploy contracts
-        bestcrow = new Bestcrow();
+        bestcrow = new Bestcrow(adminFeeReceiver);
         token = new MockERC20("Test Token", "TEST");
 
         // Setup depositor with ETH and tokens
@@ -41,8 +44,11 @@ contract BestcrowTest is Test {
     }
 
     function _createEthEscrow() internal returns (uint256) {
+        uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
+        uint256 totalAmount = AMOUNT + adminFee;
+        
         vm.prank(depositor);
-        return bestcrow.createEscrow{value: AMOUNT}(address(0), AMOUNT, MILESTONES, DAYS_TO_EXPIRY);
+        return bestcrow.createEscrow{value: totalAmount}(address(0), AMOUNT, MILESTONES, DAYS_TO_EXPIRY);
     }
 
     function _createTokenEscrow() internal returns (uint256) {
@@ -51,10 +57,11 @@ contract BestcrowTest is Test {
     }
 
     function test_createEscrowWithEth() public {
+        uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
+        uint256 totalAmount = AMOUNT + adminFee;
+        
         vm.prank(depositor);
-
-        // Create escrow with ETH
-        escrowId = bestcrow.createEscrow{value: AMOUNT}(address(0), AMOUNT, MILESTONES, DAYS_TO_EXPIRY);
+        escrowId = bestcrow.createEscrow{value: totalAmount}(address(0), AMOUNT, MILESTONES, DAYS_TO_EXPIRY);
 
         // Get the created escrow
         (
@@ -79,14 +86,15 @@ contract BestcrowTest is Test {
         assertEq(_expiryDate, block.timestamp + (DAYS_TO_EXPIRY * 1 days));
         assertTrue(_isActive);
         assertTrue(_isCompleted);
-        assertEq(address(bestcrow).balance, AMOUNT);
+        assertEq(address(bestcrow).balance, totalAmount);
     }
 
     function test_createEscrowWithToken() public {
-        // Switch to depositor context
+        // Calculate admin fee
+        uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
+        uint256 totalAmount = AMOUNT + adminFee;
+        
         vm.prank(depositor);
-
-        // Create escrow with ERC20 token
         escrowId = bestcrow.createEscrow(address(token), AMOUNT, MILESTONES, DAYS_TO_EXPIRY);
 
         // Get the created escrow
@@ -114,7 +122,7 @@ contract BestcrowTest is Test {
         assertTrue(_isActive);
         assertFalse(_isEth);
         assertFalse(_isCompleted);
-        assertEq(token.balanceOf(address(bestcrow)), AMOUNT);
+        assertEq(token.balanceOf(address(bestcrow)), totalAmount);
     }
 
     function testFail_createEscrowWithInvalidMilestones() public {
@@ -146,9 +154,11 @@ contract BestcrowTest is Test {
     function test_acceptEscrowWithEth() public {
         uint256 _escrowId = _createEthEscrow();
         uint256 receiverInitialBalance = receiver.balance;
+        uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
+        uint256 totalAmount = AMOUNT + adminFee;
 
         vm.prank(receiver);
-        bestcrow.acceptEscrow{value: AMOUNT}(_escrowId);
+        bestcrow.acceptEscrow{value: totalAmount}(_escrowId);
 
         // Get the escrow details
         (address _depositor, address _receiver,,,,,,,,) = bestcrow.escrows(_escrowId);
@@ -158,12 +168,14 @@ contract BestcrowTest is Test {
         assertEq(_depositor, depositor);
 
         // Assert balances
-        assertEq(address(bestcrow).balance, AMOUNT * 2); // Original deposit + collateral
-        assertEq(receiver.balance, receiverInitialBalance - AMOUNT); // Should have sent collateral
+        assertEq(address(bestcrow).balance, (totalAmount * 2)); // Original deposit + collateral (both including admin fee)
+        assertEq(receiver.balance, receiverInitialBalance - totalAmount); // Should have sent collateral + admin fee
     }
 
     function test_acceptEscrowWithToken() public {
         escrowId = _createTokenEscrow();
+        uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
+        uint256 totalAmount = (2 * AMOUNT) + adminFee;
         uint256 receiverInitialBalance = token.balanceOf(receiver);
 
         vm.prank(receiver);
@@ -176,53 +188,63 @@ contract BestcrowTest is Test {
         assertEq(_receiver, receiver);
         assertEq(_depositor, depositor);
 
-        // Assert balances
-        assertEq(token.balanceOf(address(bestcrow)), AMOUNT * 2); // Original deposit + collateral
-        assertEq(token.balanceOf(receiver), receiverInitialBalance - AMOUNT); // Should have sent collateral
+        // Assert balances with corrected calculation
+        assertEq(token.balanceOf(address(bestcrow)), totalAmount);
+        assertEq(token.balanceOf(receiver), receiverInitialBalance - AMOUNT);
     }
 
     function testFail_acceptExpiredEscrow() public {
         uint256 _escrowId = _createEthEscrow();
+        uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
+        uint256 totalAmount = AMOUNT + adminFee;
 
         // Fast forward past expiry
         vm.warp(block.timestamp + (DAYS_TO_EXPIRY * 1 days) + 1);
 
         vm.prank(receiver);
-        bestcrow.acceptEscrow{value: AMOUNT}(_escrowId);
+        bestcrow.acceptEscrow{value: totalAmount}(_escrowId);
     }
 
     function testFail_acceptAlreadyAcceptedEscrow() public {
         escrowId = _createEthEscrow();
+        uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
+        uint256 totalAmount = AMOUNT + adminFee;
 
         // First acceptance
         vm.prank(receiver);
-        bestcrow.acceptEscrow{value: AMOUNT}(escrowId);
+        bestcrow.acceptEscrow{value: totalAmount}(escrowId);
 
         // Create another receiver
         address receiver2 = makeAddr("receiver2");
-        vm.deal(receiver2, AMOUNT);
+        vm.deal(receiver2, totalAmount);  // Give enough ETH including admin fee
 
         // Try to accept again
         vm.prank(receiver2);
-        bestcrow.acceptEscrow{value: AMOUNT}(escrowId);
+        bestcrow.acceptEscrow{value: totalAmount}(escrowId);
     }
 
     function testFail_acceptEscrowAsDepositor() public {
         escrowId = _createEthEscrow();
+        uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
+        uint256 totalAmount = AMOUNT + adminFee;
 
         vm.prank(depositor);
-        bestcrow.acceptEscrow{value: AMOUNT}(escrowId);
+        bestcrow.acceptEscrow{value: totalAmount}(escrowId);
     }
 
     function testFail_acceptEscrowWithIncorrectEthAmount() public {
         escrowId = _createEthEscrow();
+        uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
+        uint256 totalAmount = AMOUNT + adminFee;
 
         vm.prank(receiver);
-        bestcrow.acceptEscrow{value: AMOUNT - 0.1 ether}(escrowId);
+        bestcrow.acceptEscrow{value: totalAmount - 0.1 ether}(escrowId);
     }
 
     function testFail_acceptInactiveEscrow() public {
         escrowId = _createEthEscrow();
+        uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
+        uint256 totalAmount = AMOUNT + adminFee;
 
         // Complete the escrow somehow (you might need to add a function for this in your contract)
         // For now, let's assume it's expired and refunded
@@ -230,7 +252,7 @@ contract BestcrowTest is Test {
         bestcrow.refundExpiredEscrow(escrowId);
 
         vm.prank(receiver);
-        bestcrow.acceptEscrow{value: AMOUNT}(escrowId);
+        bestcrow.acceptEscrow{value: totalAmount}(escrowId);
     }
 
     function test_acceptEscrowEmitsEvent() public {
@@ -298,5 +320,118 @@ contract BestcrowTest is Test {
         (,,,,,,,, bool isActive,) = bestcrow.escrows(_escrowId);
         assertFalse(isActive);
         assertEq(token.balanceOf(address(bestcrow)), 0); // All funds should be released
+    }
+
+    function test_refundExpiredEscrowWithEth() public {
+        uint256 _escrowId = _createEthEscrow();
+        uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
+        uint256 depositorInitialBalance = depositor.balance;
+        
+        // Fast forward past expiry
+        vm.warp(block.timestamp + (DAYS_TO_EXPIRY * 1 days) + 1);
+        
+        vm.prank(depositor);
+        bestcrow.refundExpiredEscrow(_escrowId);
+        
+        // Check balances
+        assertEq(depositor.balance, depositorInitialBalance + AMOUNT + adminFee);
+        assertEq(address(bestcrow).balance, 0);
+        
+        // Check escrow state
+        (,,,,,,,bool isActive,,) = bestcrow.escrows(_escrowId);
+        assertFalse(isActive);
+    }
+    
+    function test_refundExpiredEscrowWithToken() public {
+        uint256 _escrowId = _createTokenEscrow();
+        uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
+        uint256 depositorInitialBalance = token.balanceOf(depositor);
+        
+        // Fast forward past expiry
+        vm.warp(block.timestamp + (DAYS_TO_EXPIRY * 1 days) + 1);
+        
+        vm.prank(depositor);
+        bestcrow.refundExpiredEscrow(_escrowId);
+        
+        // Check balances
+        assertEq(token.balanceOf(depositor), depositorInitialBalance + AMOUNT + adminFee);
+        assertEq(token.balanceOf(address(bestcrow)), 0);
+        
+        // Check escrow state
+        (,,,,,,,bool isActive,,) = bestcrow.escrows(_escrowId);
+        assertFalse(isActive);
+    }
+    
+    function testFail_refundNonExpiredEscrow() public {
+        uint256 _escrowId = _createEthEscrow();
+        
+        vm.prank(depositor);
+        bestcrow.refundExpiredEscrow(_escrowId); // Should fail as not expired
+    }
+    
+    function testFail_refundAcceptedEscrow() public {
+        uint256 _escrowId = _createEthEscrow();
+        
+        // Accept the escrow
+        vm.prank(receiver);
+        bestcrow.acceptEscrow{value: AMOUNT}(_escrowId);
+        
+        // Fast forward past expiry
+        vm.warp(block.timestamp + (DAYS_TO_EXPIRY * 1 days) + 1);
+        
+        vm.prank(depositor);
+        bestcrow.refundExpiredEscrow(_escrowId); // Should fail as escrow was accepted
+    }
+    
+    function testFail_refundByNonDepositor() public {
+        uint256 _escrowId = _createEthEscrow();
+        
+        // Fast forward past expiry
+        vm.warp(block.timestamp + (DAYS_TO_EXPIRY * 1 days) + 1);
+        
+        vm.prank(receiver);
+        bestcrow.refundExpiredEscrow(_escrowId); // Should fail as caller is not depositor
+    }
+
+    function test_adminFeeTransferOnCompletion() public {
+        uint256 _escrowId = _createEthEscrow();
+        uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
+        uint256 adminInitialBalance = adminFeeReceiver.balance;
+        
+        // Accept escrow
+        vm.prank(receiver);
+        bestcrow.acceptEscrow{value: AMOUNT}(_escrowId);
+        
+        // Complete all milestones
+        for (uint256 i = 0; i < MILESTONES; i++) {
+            vm.prank(receiver);
+            bestcrow.requestMilestoneCompletion(_escrowId);
+        }
+        
+        // Check admin fee was transferred
+        assertEq(adminFeeReceiver.balance, adminInitialBalance + adminFee);
+    }
+    
+    function test_adminFeeTransferOnTokenCompletion() public {
+        uint256 _escrowId = _createTokenEscrow();
+        uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
+        uint256 adminInitialBalance = token.balanceOf(adminFeeReceiver);
+        
+        // Accept escrow
+        vm.prank(receiver);
+        bestcrow.acceptEscrow(_escrowId);
+        
+        // Complete all milestones
+        for (uint256 i = 0; i < MILESTONES; i++) {
+            vm.prank(receiver);
+            bestcrow.requestMilestoneCompletion(_escrowId);
+        }
+        
+        // Check admin fee was transferred
+        assertEq(token.balanceOf(adminFeeReceiver), adminInitialBalance + adminFee);
+    }
+
+    function _calculateAdminFee(uint256 amount) internal pure returns (uint256) {
+        return (amount * ADMIN_FEE_BASIS_POINTS) / 10000;
     }
 }
