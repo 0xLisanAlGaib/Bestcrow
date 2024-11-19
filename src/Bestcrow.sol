@@ -138,10 +138,10 @@ contract Bestcrow is ReentrancyGuard, Ownable {
 
     function refundExpiredEscrow(uint256 _escrowId) external nonReentrant {
         Escrow storage escrow = escrows[_escrowId];
-        require(!escrow.isActive, "Escrow is active");
-        require(!escrow.isCompleted, "Escrow already completed");
+        require(!escrow.isActive && !escrow.isCompleted, "Escrow is active or completed");
         require(msg.sender == escrow.depositor, "Only depositor can refund");
         require(block.timestamp >= escrow.expiryDate, "Escrow not expired");
+        require(!escrow.releaseRequested, "Escrow was previously accepted");
 
         uint256 adminFee = (escrow.amount * ADMIN_FEE_BASIS_POINTS) / BASIS_POINTS_DENOMINATOR;
         uint256 totalRefund = escrow.amount + adminFee;

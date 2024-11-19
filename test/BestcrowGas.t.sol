@@ -186,4 +186,75 @@ contract BestcrowGasTest is Test {
 
         assertEq(token.balanceOf(owner), 5000000000000000); // 0.005 ETH fee (50 basis points of 1 ETH)
     }
+
+    // Add these new gas optimization tests
+
+    function test_gasCompleteEscrowWithMinimumOperations() public {
+        uint256 amount = 1 ether;
+        uint256 adminFee = (amount * ADMIN_FEE_BASIS_POINTS) / 10000;
+        uint256 totalGas;
+
+        // Measure gas for minimum required operations
+        vm.prank(depositor);
+        uint256 gasBefore = gasleft();
+
+        uint256 escrowId = bestcrow.createEscrow{value: amount + adminFee}(
+            address(0), amount, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver
+        );
+
+        uint256 createGas = gasBefore - gasleft();
+
+        // Accept escrow
+        uint256 collateralAmount = (amount * COLLATERAL_PERCENTAGE) / 100;
+        vm.prank(receiver);
+        gasBefore = gasleft();
+        bestcrow.acceptEscrow{value: collateralAmount}(escrowId);
+        uint256 acceptGas = gasBefore - gasleft();
+
+        // Direct release (request + approve)
+        vm.prank(receiver);
+        gasBefore = gasleft();
+        bestcrow.requestRelease(escrowId);
+        uint256 requestGas = gasBefore - gasleft();
+
+        vm.prank(depositor);
+        gasBefore = gasleft();
+        bestcrow.approveRelease(escrowId);
+        uint256 approveGas = gasBefore - gasleft();
+
+        totalGas = createGas + acceptGas + requestGas + approveGas;
+
+        console.log("Minimum operations gas breakdown:");
+        console.log("Create:", createGas);
+        console.log("Accept:", acceptGas);
+        console.log("Request:", requestGas);
+        console.log("Approve:", approveGas);
+        console.log("Total:", totalGas);
+
+        // Assert reasonable gas limits
+        assertTrue(totalGas < 400000); // Adjust based on your requirements
+    }
+
+    function test_gasRefundExpiredEscrow() public {
+        uint256 amount = 1 ether;
+        uint256 adminFee = (amount * ADMIN_FEE_BASIS_POINTS) / 10000;
+
+        // Create escrow
+        vm.prank(depositor);
+        uint256 escrowId = bestcrow.createEscrow{value: amount + adminFee}(
+            address(0), amount, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver
+        );
+
+        // Fast forward past expiry
+        vm.warp(block.timestamp + DAYS_TO_EXPIRY * 1 days + 1);
+
+        // Measure gas for refund
+        vm.prank(depositor);
+        uint256 gasBefore = gasleft();
+        bestcrow.refundExpiredEscrow(escrowId);
+        uint256 gasUsed = gasBefore - gasleft();
+
+        console.log("Gas used for refund:", gasUsed);
+        assertTrue(gasUsed < 100000); // Adjust based on your requirements
+    }
 }

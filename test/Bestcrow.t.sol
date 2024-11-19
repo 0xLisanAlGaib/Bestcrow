@@ -593,4 +593,58 @@ contract BestcrowTest is Test {
 
     // Add at the contract level
     receive() external payable {}
+
+    // Edge Cases for Escrow Status
+    function test_cannotReleaseCompletedEscrow() public {
+        // Setup and complete an escrow
+        uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
+        uint256 totalAmount = AMOUNT + adminFee;
+
+        vm.prank(depositor);
+        uint256 escrowId = bestcrow.createEscrow{value: totalAmount}(
+            address(0), AMOUNT, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver
+        );
+
+        uint256 collateralAmount = (AMOUNT * COLLATERAL_PERCENTAGE) / 100;
+        vm.prank(receiver);
+        bestcrow.acceptEscrow{value: collateralAmount}(escrowId);
+
+        vm.prank(receiver);
+        bestcrow.requestRelease(escrowId);
+
+        vm.prank(depositor);
+        bestcrow.approveRelease(escrowId);
+
+        // Try to request release again
+        vm.expectRevert("Escrow not active");
+        vm.prank(receiver);
+        bestcrow.requestRelease(escrowId);
+    }
+
+    // Test for multiple escrows between same parties
+    function test_multipleEscrowsBetweenSameParties() public {
+        uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
+        uint256 totalAmount = AMOUNT + adminFee;
+
+        // Create first escrow
+        vm.prank(depositor);
+        uint256 escrowId1 = bestcrow.createEscrow{value: totalAmount}(
+            address(0), AMOUNT, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver
+        );
+
+        // Create second escrow
+        vm.prank(depositor);
+        uint256 escrowId2 = bestcrow.createEscrow{value: totalAmount}(
+            address(0), AMOUNT, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver
+        );
+
+        assertEq(escrowId2, escrowId1 + 1);
+
+        // Verify both escrows are independent
+        (address depositor1,,,,,,,,) = bestcrow.escrows(escrowId1);
+        (address depositor2,,,,,,,,) = bestcrow.escrows(escrowId2);
+
+        assertEq(depositor1, depositor);
+        assertEq(depositor2, depositor);
+    }
 }
