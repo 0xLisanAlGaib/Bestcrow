@@ -6,31 +6,78 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
+/**
+ * @title Bestcrow
+ * @notice A decentralized escrow contract for ETH and ERC20 tokens.
+ * @dev Uses SafeERC20, ReentrancyGuard, and Ownable for security and functionality.
+ * @custom:security-contact security@bestcrow.com
+ */
 contract Bestcrow is ReentrancyGuard, Ownable {
     using SafeERC20 for IERC20;
 
-    uint256 public constant ADMIN_FEE_BASIS_POINTS = 50; // 0.5%
+    /**
+     * @notice The administrative fee in basis points (0.5%).
+     * @dev 50 basis points = 0.5%
+     */
+    uint256 public constant ADMIN_FEE_BASIS_POINTS = 50;
+    /**
+     * @notice The denominator for basis points calculations
+     * @dev 10000 basis points = 100%
+     */
     uint256 public constant BASIS_POINTS_DENOMINATOR = 10000;
-    uint256 public constant COLLATERAL_PERCENTAGE = 50; // 50%
+    /**
+     * @notice The collateral percentage required from the receiver
+     * @dev 50% of the escrowed amount
+     */
+    uint256 public constant COLLATERAL_PERCENTAGE = 50;
 
+    /**
+     * @notice Tracks the total ETH fees collected by the contract
+     * @dev Accumulated fees can be withdrawn by the contract owner
+     */
     uint256 public accruedFeesETH;
+    /**
+     * @notice Tracks the total ERC20 fees collected per token
+     * @dev Mapping of token address to accumulated fee amount
+     */
     mapping(address => uint256) public accruedFeesERC20;
 
+    /**
+     * @notice Represents an escrow agreement between two parties
+     * @dev All escrow details are stored in this structure
+     * @param depositor The address that creates and funds the escrow
+     * @param receiver The intended recipient of the escrowed funds
+     * @param token The token being escrowed (address(0) for ETH)
+     * @param amount The amount of tokens/ETH in escrow
+     * @param expiryDate The timestamp after which the escrow can be refunded
+     * @param isActive Whether the escrow has been accepted by receiver
+     * @param isCompleted Whether the escrow has been completed successfully
+     * @param isEth Whether the escrow is for ETH (true) or ERC20 (false)
+     * @param releaseRequested Whether the receiver has requested fund release
+     */
     struct Escrow {
-        address depositor;
-        address receiver;
-        address token;
-        uint256 amount;
-        uint256 expiryDate;
-        bool isActive;
-        bool isCompleted;
-        bool isEth;
-        bool releaseRequested;
+        address depositor; // The address that creates the escrow.
+        address receiver; // The intended recipient of the funds.
+        address token; // The token being escrowed (use address(0) for ETH).
+        uint256 amount; // The amount to be held in escrow.
+        uint256 expiryDate; // The timestamp when the escrow expires.
+        bool isActive; // Whether the escrow is active.
+        bool isCompleted; // Whether the escrow has been completed.
+        bool isEth; // Whether the escrow is for ETH.
+        bool releaseRequested; // Whether the release of funds has been requested.
     }
 
+    /**
+     * @notice Counter for generating unique escrow IDs
+     * @dev Increments by 1 for each new escrow
+     */
     uint256 public nextEscrowId;
+    /**
+     * @notice Maps escrow IDs to their corresponding Escrow struct
+     */
     mapping(uint256 => Escrow) public escrows;
 
+    /// @notice Emitted when a new escrow is created.
     event EscrowCreated(
         uint256 indexed escrowId,
         address indexed depositor,
@@ -39,14 +86,32 @@ contract Bestcrow is ReentrancyGuard, Ownable {
         uint256 amount,
         uint256 expiryDate
     );
+    /// @notice Emitted when an escrow is accepted by the receiver.
     event EscrowAccepted(uint256 indexed escrowId, address indexed receiver);
+    /// @notice Emitted when the release of an escrow is requested.
     event ReleaseRequested(uint256 indexed escrowId);
+    /// @notice Emitted when an escrow is completed and funds are released to the receiver.
     event EscrowCompleted(uint256 indexed escrowId, address indexed receiver, uint256 amount);
+    /// @notice Emitted when an escrow is refunded to the depositor.
     event EscrowRefunded(uint256 indexed escrowId, address indexed depositor);
+    /// @notice Emitted when fees are withdrawn by the contract owner.
     event FeesWithdrawn(address token, uint256 amount);
 
+    /**
+     * @notice Initializes the contract with the deployer as owner
+     * @dev Calls Ownable constructor with msg.sender
+     */
     constructor() Ownable(msg.sender) {}
 
+    /**
+     * @notice Creates a new escrow agreement
+     * @dev Transfers funds from sender to contract and creates escrow record
+     * @param _token The token address (address(0) for ETH)
+     * @param _amount The amount to be escrowed
+     * @param _expiryDate The timestamp when the escrow expires
+     * @param _receiver The address that can claim the escrowed funds
+     * @return escrowId The unique identifier for the created escrow
+     */
     function createEscrow(address _token, uint256 _amount, uint256 _expiryDate, address _receiver)
         external
         payable
@@ -83,6 +148,11 @@ contract Bestcrow is ReentrancyGuard, Ownable {
         return escrowId;
     }
 
+    /**
+     * @notice Allows the receiver to accept an escrow by providing collateral
+     * @dev Transfers collateral from receiver to contract
+     * @param _escrowId The ID of the escrow to accept
+     */
     function acceptEscrow(uint256 _escrowId) external payable nonReentrant {
         Escrow storage escrow = escrows[_escrowId];
         require(!escrow.isActive, "Escrow already active");
@@ -101,6 +171,11 @@ contract Bestcrow is ReentrancyGuard, Ownable {
         emit EscrowAccepted(_escrowId, msg.sender);
     }
 
+    /**
+     * @notice Allows the receiver to request release of escrowed funds
+     * @dev Must be called before depositor can approve release
+     * @param _escrowId The ID of the escrow
+     */
     function requestRelease(uint256 _escrowId) external nonReentrant {
         Escrow storage escrow = escrows[_escrowId];
         require(escrow.isActive, "Escrow not active");
@@ -112,6 +187,11 @@ contract Bestcrow is ReentrancyGuard, Ownable {
         emit ReleaseRequested(_escrowId);
     }
 
+    /**
+     * @notice Allows the depositor to approve release of funds to receiver
+     * @dev Transfers both escrowed amount and collateral to receiver
+     * @param _escrowId The ID of the escrow
+     */
     function approveRelease(uint256 _escrowId) external nonReentrant {
         Escrow storage escrow = escrows[_escrowId];
         require(escrow.isActive, "Escrow not active");
@@ -136,6 +216,11 @@ contract Bestcrow is ReentrancyGuard, Ownable {
         emit EscrowCompleted(_escrowId, escrow.receiver, totalToReceiver);
     }
 
+    /**
+     * @notice Allows depositor to reclaim funds from an expired escrow
+     * @dev Can only be called after expiry and if escrow wasn't accepted
+     * @param _escrowId The ID of the escrow
+     */
     function refundExpiredEscrow(uint256 _escrowId) external nonReentrant {
         Escrow storage escrow = escrows[_escrowId];
         require(!escrow.isActive && !escrow.isCompleted, "Escrow is active or completed");
@@ -156,6 +241,11 @@ contract Bestcrow is ReentrancyGuard, Ownable {
         emit EscrowRefunded(_escrowId, escrow.depositor);
     }
 
+    /**
+     * @notice Allows owner to withdraw accumulated fees
+     * @dev Separate withdrawal for ETH and each ERC20 token
+     * @param _token The token address (address(0) for ETH)
+     */
     function withdrawFees(address _token) external onlyOwner {
         if (_token == address(0)) {
             require(accruedFeesETH > 0, "No ETH fees to withdraw");
@@ -172,5 +262,9 @@ contract Bestcrow is ReentrancyGuard, Ownable {
         }
     }
 
+    /**
+     * @notice Allows contract to receive ETH
+     * @dev Required for escrow operations involving ETH
+     */
     receive() external payable {}
 }
