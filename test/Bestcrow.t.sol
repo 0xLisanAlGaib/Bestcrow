@@ -5,6 +5,10 @@ import {Test} from "forge-std/Test.sol";
 import {Bestcrow} from "../src/Bestcrow.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 
+/// @title Bestcrow Test Suite
+/// @author @0xLisanAlGaib
+/// @notice Comprehensive test suite for the Bestcrow escrow contract
+/// @dev Tests cover ETH and ERC20 functionality, edge cases, and failure scenarios
 contract BestcrowTest is Test {
     event EscrowCreated(
         uint256 indexed escrowId,
@@ -20,9 +24,11 @@ contract BestcrowTest is Test {
     event EscrowRefunded(uint256 indexed escrowId, address indexed depositor);
     event FeesWithdrawn(address token, uint256 amount);
 
+    /// @dev Core contract instances
     Bestcrow public bestcrow;
     MockERC20 public token;
 
+    /// @dev Test addresses and constants
     address public depositor = makeAddr("depositor");
     address public receiver = makeAddr("receiver");
     uint256 public constant AMOUNT = 1 ether;
@@ -30,6 +36,8 @@ contract BestcrowTest is Test {
     uint256 public constant ADMIN_FEE_BASIS_POINTS = 50; // 0.5% = 50 basis points
     uint256 public constant COLLATERAL_PERCENTAGE = 50; // 50%
 
+    /// @notice Set up the test environment
+    /// @dev Deploys contracts, mints tokens, and sets up approvals
     function setUp() public {
         // Deploy contracts
         bestcrow = new Bestcrow();
@@ -48,7 +56,10 @@ contract BestcrowTest is Test {
         token.approve(address(bestcrow), type(uint256).max);
     }
 
-    //ETH Specific Tests
+    // ETH Specific Tests
+
+    /// @notice Test creating an escrow with ETH
+    /// @dev Verifies all escrow parameters are set correctly
     function test_createEscrowWithEth() public {
         uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
         uint256 totalAmount = AMOUNT + adminFee;
@@ -81,6 +92,8 @@ contract BestcrowTest is Test {
         assertFalse(_releaseRequested);
     }
 
+    /// @notice Test accepting an ETH escrow
+    /// @dev Verifies escrow activation and collateral handling
     function test_acceptEscrowWithEth() public {
         // Create escrow first
         uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
@@ -101,6 +114,8 @@ contract BestcrowTest is Test {
         assertTrue(isActive);
     }
 
+    /// @notice Test the complete flow of requesting and approving release for ETH escrow
+    /// @dev Verifies proper transfer of funds and escrow completion
     function test_requestAndApproveReleaseETH() public {
         // Setup escrow and accept it first
         uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
@@ -130,6 +145,8 @@ contract BestcrowTest is Test {
         assertEq(receiver.balance - receiverBalanceBefore, expectedTotal);
     }
 
+    /// @notice Test refunding an expired ETH escrow
+    /// @dev Verifies proper refund mechanics after expiry
     function test_refundExpiredEscrowETH() public {
         uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
         uint256 totalAmount = AMOUNT + adminFee;
@@ -150,6 +167,8 @@ contract BestcrowTest is Test {
         assertEq(depositor.balance - depositorBalanceBefore, totalAmount);
     }
 
+    /// @notice Test withdrawal of accumulated ETH fees
+    /// @dev Verifies proper fee calculation and transfer to owner
     function test_withdrawFeesETH() public {
         // Setup and complete an escrow to generate fees
         uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
@@ -181,6 +200,9 @@ contract BestcrowTest is Test {
     }
 
     // ERC20 specific tests
+
+    /// @notice Test complete flow of ERC20 escrow from creation to completion
+    /// @dev Verifies token transfers and balance updates
     function test_createAndCompleteEscrowWithERC20() public {
         uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
         uint256 totalAmount = AMOUNT + adminFee;
@@ -205,7 +227,8 @@ contract BestcrowTest is Test {
         assertEq(token.balanceOf(receiver) - receiverBalanceBefore, AMOUNT + collateralAmount);
     }
 
-    // Additional ERC20 Token Tests
+    /// @notice Test refunding expired ERC20 escrow
+    /// @dev Verifies proper token refund mechanics after escrow expiration
     function test_refundExpiredEscrowERC20() public {
         uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
         uint256 totalAmount = AMOUNT + adminFee;
@@ -224,6 +247,8 @@ contract BestcrowTest is Test {
         assertEq(token.balanceOf(depositor) - depositorBalanceBefore, totalAmount);
     }
 
+    /// @notice Test withdrawal of accumulated ERC20 fees
+    /// @dev Verifies proper fee calculation and token transfer to owner
     function test_withdrawFeesERC20() public {
         uint256 amount = 1 ether;
         uint256 adminFee = (amount * ADMIN_FEE_BASIS_POINTS) / 10000;
@@ -256,6 +281,9 @@ contract BestcrowTest is Test {
     }
 
     // CreateEscrow failure cases
+
+    /// @notice Test failure when creating escrow with invalid receiver address
+    /// @dev Should revert when receiver address is zero
     function testFail_createEscrowWithInvalidReceiver() public {
         uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
         uint256 totalAmount = AMOUNT + adminFee;
@@ -269,11 +297,15 @@ contract BestcrowTest is Test {
         );
     }
 
+    /// @notice Test failure when creating escrow with zero amount
+    /// @dev Should revert when escrow amount is zero
     function testFail_createEscrowWithZeroAmount() public {
         vm.prank(depositor);
         bestcrow.createEscrow{value: 0}(address(0), 0, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver);
     }
 
+    /// @notice Test failure when creating escrow with past expiry date
+    /// @dev Should revert when expiry date is in the past
     function testFail_createEscrowWithPastExpiry() public {
         uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
         uint256 totalAmount = AMOUNT + adminFee;
@@ -282,12 +314,16 @@ contract BestcrowTest is Test {
         bestcrow.createEscrow{value: totalAmount}(address(0), AMOUNT, block.timestamp - 1, receiver);
     }
 
+    /// @notice Test failure when creating ETH escrow with incorrect amount
+    /// @dev Should revert when sent ETH doesn't match amount plus admin fee
     function testFail_createEscrowWithIncorrectEthAmount() public {
         vm.prank(depositor);
         bestcrow.createEscrow{value: AMOUNT}( // Missing admin fee
         address(0), AMOUNT, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver);
     }
 
+    /// @notice Test failure when creating escrow with self as receiver
+    /// @dev Should revert when depositor tries to set themselves as receiver
     function testFail_createEscrowWithSelfAsReceiver() public {
         uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
         uint256 totalAmount = AMOUNT + adminFee;
@@ -299,6 +335,9 @@ contract BestcrowTest is Test {
     }
 
     // AcceptEscrow failure cases
+
+    /// @notice Test failure when accepting an escrow twice
+    /// @dev Should revert on second acceptance attempt
     function testFail_acceptEscrowTwice() public {
         uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
         uint256 totalAmount = AMOUNT + adminFee;
@@ -316,6 +355,8 @@ contract BestcrowTest is Test {
         vm.stopPrank();
     }
 
+    /// @notice Test failure when accepting an expired escrow
+    /// @dev Should revert when trying to accept after expiry date
     function testFail_acceptExpiredEscrow() public {
         uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
         uint256 totalAmount = AMOUNT + adminFee;
@@ -332,6 +373,8 @@ contract BestcrowTest is Test {
         bestcrow.acceptEscrow{value: collateralAmount}(escrowId);
     }
 
+    /// @notice Test failure when unauthorized address tries to accept escrow
+    /// @dev Should revert when non-receiver tries to accept
     function testFail_acceptEscrowUnauthorized() public {
         uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
         uint256 totalAmount = AMOUNT + adminFee;
@@ -349,6 +392,8 @@ contract BestcrowTest is Test {
         bestcrow.acceptEscrow{value: collateralAmount}(escrowId);
     }
 
+    /// @notice Test failure when accepting with insufficient collateral
+    /// @dev Should revert when collateral amount is less than required
     function testFail_acceptEscrowInsufficientCollateral() public {
         uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
         uint256 totalAmount = AMOUNT + adminFee;
@@ -364,6 +409,9 @@ contract BestcrowTest is Test {
     }
 
     // RequestRelease failure cases
+
+    /// @notice Test failure when requesting release before acceptance
+    /// @dev Should revert when trying to request release on unaccepted escrow
     function testFail_requestReleaseBeforeAcceptance() public {
         uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
         uint256 totalAmount = AMOUNT + adminFee;
@@ -377,6 +425,8 @@ contract BestcrowTest is Test {
         bestcrow.requestRelease(escrowId);
     }
 
+    /// @notice Test failure when unauthorized address requests release
+    /// @dev Should revert when non-receiver requests release
     function testFail_requestReleaseUnauthorized() public {
         uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
         uint256 totalAmount = AMOUNT + adminFee;
@@ -390,6 +440,8 @@ contract BestcrowTest is Test {
         bestcrow.requestRelease(escrowId);
     }
 
+    /// @notice Test failure when requesting release twice
+    /// @dev Should revert on second release request
     function testFail_requestReleaseTwice() public {
         // Setup escrow and accept it first
         uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
@@ -411,6 +463,9 @@ contract BestcrowTest is Test {
     }
 
     // ApproveRelease failure cases
+
+    /// @notice Test failure when approving release without request
+    /// @dev Should revert when trying to approve unrequested release
     function testFail_approveReleaseWithoutRequest() public {
         // Setup escrow and accept it first
         uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
@@ -429,6 +484,8 @@ contract BestcrowTest is Test {
         bestcrow.approveRelease(escrowId); // Should fail without request
     }
 
+    /// @notice Test failure when unauthorized address approves release
+    /// @dev Should revert when non-depositor tries to approve release
     function testFail_approveReleaseUnauthorized() public {
         // Setup escrow and accept it first
         uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
@@ -451,18 +508,26 @@ contract BestcrowTest is Test {
     }
 
     // WithdrawFees failure cases
+
+    /// @notice Test failure when unauthorized address tries to withdraw fees
+    /// @dev Should revert when non-owner attempts fee withdrawal
     function testFail_withdrawFeesUnauthorized() public {
         address unauthorized = makeAddr("unauthorized");
         vm.prank(unauthorized);
         bestcrow.withdrawFees(address(0));
     }
 
+    /// @notice Test failure when withdrawing fees with zero balance
+    /// @dev Should revert when trying to withdraw non-existent fees
     function testFail_withdrawFeesWithNoBalance() public {
         vm.prank(bestcrow.owner());
         bestcrow.withdrawFees(address(0));
     }
 
     // Edge Cases Around Expiry Dates
+
+    /// @notice Test accepting escrow just before expiry
+    /// @dev Verifies escrow can be accepted up until exact expiry time
     function test_acceptEscrowJustBeforeExpiry() public {
         uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
         uint256 totalAmount = AMOUNT + adminFee;
@@ -483,6 +548,8 @@ contract BestcrowTest is Test {
         assertTrue(isActive);
     }
 
+    /// @notice Test failure when accepting escrow exactly at expiry
+    /// @dev Should revert when accepting at exact expiry timestamp
     function testFail_acceptEscrowExactlyAtExpiry() public {
         uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
         uint256 totalAmount = AMOUNT + adminFee;
@@ -501,6 +568,9 @@ contract BestcrowTest is Test {
     }
 
     // Fee Calculation Edge Cases
+
+    /// @notice Test creating escrow with minimum possible amount
+    /// @dev Verifies correct fee calculation for small amounts
     function test_createEscrowWithMinimumAmount() public {
         uint256 minAmount = 1000; // Small amount to test minimum fees
         uint256 adminFee = (minAmount * ADMIN_FEE_BASIS_POINTS) / 10000;
@@ -515,6 +585,8 @@ contract BestcrowTest is Test {
         assertEq(amount, minAmount);
     }
 
+    /// @notice Test creating escrow with large amount
+    /// @dev Verifies correct fee calculation for large amounts
     function test_createEscrowWithLargeAmount() public {
         uint256 largeAmount = 1000000 ether;
         uint256 adminFee = (largeAmount * ADMIN_FEE_BASIS_POINTS) / 10000;
@@ -532,6 +604,9 @@ contract BestcrowTest is Test {
     }
 
     // Gas Optimization Tests
+
+    /// @notice Test gas usage for escrow creation
+    /// @dev Verifies gas usage is within acceptable limits
     function test_gasCreateEscrow() public {
         uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
         uint256 totalAmount = AMOUNT + adminFee;
@@ -545,6 +620,8 @@ contract BestcrowTest is Test {
         assertTrue(gasUsed < 200000); // Increased threshold to a more realistic value
     }
 
+    /// @notice Test gas usage for escrow acceptance
+    /// @dev Verifies gas usage is within acceptable limits
     function test_gasAcceptEscrow() public {
         uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
         uint256 totalAmount = AMOUNT + adminFee;
@@ -563,6 +640,8 @@ contract BestcrowTest is Test {
         assertTrue(gasUsed < 100000); // Adjust threshold as needed
     }
 
+    /// @notice Test gas usage for complete escrow flow
+    /// @dev Verifies total gas usage for full escrow lifecycle
     function test_gasCompleteEscrowFlow() public {
         uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
         uint256 totalAmount = AMOUNT + adminFee;
@@ -589,10 +668,14 @@ contract BestcrowTest is Test {
         assertTrue(gasUsed < 200000); // Adjust threshold as needed
     }
 
-    // Add at the contract level
+    /// @notice Fallback function to receive ETH
+    /// @dev Required for contract to receive ETH in tests
     receive() external payable {}
 
     // Edge Cases for Escrow Status
+
+    /// @notice Test that completed escrow cannot be released again
+    /// @dev Verifies proper completion state handling
     function test_cannotReleaseCompletedEscrow() public {
         // Setup and complete an escrow
         uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
@@ -619,7 +702,8 @@ contract BestcrowTest is Test {
         bestcrow.requestRelease(escrowId);
     }
 
-    // Test for multiple escrows between same parties
+    /// @notice Test multiple escrows between same parties
+    /// @dev Verifies independent handling of multiple escrows
     function test_multipleEscrowsBetweenSameParties() public {
         uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
         uint256 totalAmount = AMOUNT + adminFee;

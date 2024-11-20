@@ -8,6 +8,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @title Bestcrow
+ * @author @0xLisanAlGaib
  * @notice A decentralized escrow contract for ETH and ERC20 tokens.
  * @dev Uses SafeERC20, ReentrancyGuard, and Ownable for security and functionality.
  * @custom:security-contact security@bestcrow.com
