@@ -1,66 +1,62 @@
-## Foundry
+# Bestcrow
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+A decentralized escrow smart contract for secure peer-to-peer transactions using ETH and ERC20 tokens.
 
-Foundry consists of:
+## Overview
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+Bestcrow is a trustless escrow service that facilitates secure transactions between two parties (depositor and receiver) with built-in collateral requirements and time-based expiration. It supports both ETH and ERC20 tokens.
 
-## Documentation
+## Features
 
-https://book.getfoundry.sh/
+- **Dual Asset Support**: Handle both ETH and ERC20 token transactions
+- **Collateral System**: Requires 50% collateral from receivers to ensure commitment
+- **Time-Based Expiration**: Automatic refund mechanism after expiry if not accepted
+- **Two-Step Release**: Requires receiver request and depositor approval for added security
+- **Fee System**: 0.5% administrative fee on transactions
+- **Security**: Built with OpenZeppelin's secure components including:
+  - ReentrancyGuard for protection against reentrancy attacks
+  - SafeERC20 for safe token transfers
+  - Ownable for controlled fee withdrawal
 
-## Usage
+## How It Works
 
-### Build
+1. **Creating an Escrow**
+   - Depositor creates an escrow by specifying:
+     - Token address (or address(0) for ETH)
+     - Amount
+     - Expiry date
+     - Receiver's address
+   - Depositor sends funds + 0.5% fee
 
-```shell
-$ forge build
-```
+2. **Accepting an Escrow**
+   - Receiver must accept by providing 50% collateral
+   - Must be done before expiry date
 
-### Test
+3. **Completing the Transaction**
+   - Receiver requests release of funds
+   - Depositor approves the release
+   - Both original amount and collateral are sent to receiver
 
-```shell
-$ forge test
-```
+4. **Expiration/Refund**
+   - If receiver never accepts, depositor can reclaim funds after expiry
+   - Includes refund of administrative fee
 
-### Format
+## Contract Functions
 
-```shell
-$ forge fmt
-```
+- `createEscrow`: Create a new escrow agreement
+- `acceptEscrow`: Accept and collateralize an escrow
+- `requestRelease`: Request release of escrowed funds
+- `approveRelease`: Approve and execute fund release
+- `refundExpiredEscrow`: Reclaim funds from expired escrows
+- `withdrawFees`: Admin function to withdraw collected fees
 
-### Gas Snapshots
+## Security
 
-```shell
-$ forge snapshot
-```
+- Contact: 0xlisanalgaib@gmail.com
+- Built with Solidity 0.8.24
+- Implements reentrancy protection
+- Uses safe transfer methods for tokens
 
-### Anvil
+## License
 
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+MIT License
