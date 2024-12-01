@@ -27,10 +27,10 @@ contract Bestcrow is ReentrancyGuard, Ownable {
      */
     uint256 public constant BASIS_POINTS_DENOMINATOR = 10000;
     /**
-     * @notice The collateral percentage required from the receiver
-     * @dev 50% of the escrowed amount
+     * @notice The collateral percentage required from the receiver in basis points
+     * @dev 5000 basis points = 50%
      */
-    uint256 public constant COLLATERAL_PERCENTAGE = 50;
+    uint256 public constant COLLATERAL_PERCENTAGE_BASIS_POINTS = 5000;
 
     /**
      * @notice Tracks the total ETH fees collected by the contract
@@ -160,7 +160,7 @@ contract Bestcrow is ReentrancyGuard, Ownable {
         require(block.timestamp < escrow.expiryDate, "Escrow expired");
         require(msg.sender == escrow.receiver, "Only specified receiver can accept");
 
-        uint256 collateralAmount = escrow.amount * COLLATERAL_PERCENTAGE / 100;
+        uint256 collateralAmount = (escrow.amount * COLLATERAL_PERCENTAGE_BASIS_POINTS) / BASIS_POINTS_DENOMINATOR;
 
         if (escrow.isEth) {
             require(msg.value == collateralAmount, "Incorrect collateral amount");
@@ -201,7 +201,7 @@ contract Bestcrow is ReentrancyGuard, Ownable {
         require(escrow.releaseRequested, "Release not requested");
 
         uint256 adminFee = (escrow.amount * ADMIN_FEE_BASIS_POINTS) / BASIS_POINTS_DENOMINATOR;
-        uint256 collateralAmount = escrow.amount * COLLATERAL_PERCENTAGE / 100;
+        uint256 collateralAmount = (escrow.amount * COLLATERAL_PERCENTAGE_BASIS_POINTS) / BASIS_POINTS_DENOMINATOR;
         uint256 totalToReceiver = escrow.amount + collateralAmount;
 
         if (escrow.isEth) {

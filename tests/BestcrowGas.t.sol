@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.24;
 
-import "forge-std/Test.sol";
-import "../src/Bestcrow.sol";
-import "./mocks/MockERC20.sol";
-import "forge-std/console.sol";
+import {Test} from "lib/forge-std/src/Test.sol";
+import {Bestcrow} from "../src/Bestcrow.sol";
+import {MockERC20} from "./mocks/MockERC20.sol";
+import {console} from "lib/forge-std/src/console.sol";
 
 /// @title Bestcrow Gas Optimization Test Suite
 /// @notice Gas optimization tests for the Bestcrow escrow contract
