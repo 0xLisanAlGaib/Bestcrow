@@ -7,7 +7,7 @@ A decentralized escrow smart contract for secure peer-to-peer transactions using
 Bestcrow is a trustless escrow service that facilitates secure transactions between two parties (depositor and receiver) with built-in collateral requirements and time-based expiration. It supports both ETH and ERC20 tokens.
 
 
-#### Sepolia
+### Sepolia
 
 | Version  | Address |
 | -------- | ------- |
