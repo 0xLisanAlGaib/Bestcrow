@@ -131,9 +131,9 @@ contract Bestcrow is ReentrancyGuard, Ownable {
         } else {
             IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount + adminFee);
         }
-
-        uint256 escrowId = nextEscrowId++;
-        escrows[escrowId] = Escrow({
+        
+        nextEscrowId++;
+        escrows[nextEscrowId] = Escrow({
             depositor: msg.sender,
             receiver: _receiver,
             token: _token,
@@ -145,8 +145,8 @@ contract Bestcrow is ReentrancyGuard, Ownable {
             releaseRequested: false
         });
 
-        emit EscrowCreated(escrowId, msg.sender, _receiver, _token, _amount, _expiryDate);
-        return escrowId;
+        emit EscrowCreated(nextEscrowId, msg.sender, _receiver, _token, _amount, _expiryDate);
+        return nextEscrowId;
     }
 
     /**
