@@ -394,7 +394,7 @@ library Address {
             revert Errors.InsufficientBalance(address(this).balance, amount);
         }
 
-        (bool success, ) = recipient.call{value: amount}("");
+        (bool success,) = recipient.call{value: amount}("");
         if (!success) {
             revert Errors.FailedCall();
         }
@@ -462,11 +462,11 @@ library Address {
      * was not a contract or bubbling up the revert reason (falling back to {Errors.FailedCall}) in case
      * of an unsuccessful call.
      */
-    function verifyCallResultFromTarget(
-        address target,
-        bool success,
-        bytes memory returndata
-    ) internal view returns (bytes memory) {
+    function verifyCallResultFromTarget(address target, bool success, bytes memory returndata)
+        internal
+        view
+        returns (bytes memory)
+    {
         if (!success) {
             _revert(returndata);
         } else {
@@ -569,7 +569,9 @@ interface IERC1363 is IERC20, IERC165 {
      * @param data Additional data with no specified format, sent in call to `to`.
      * @return A boolean value indicating whether the operation succeeded unless throwing.
      */
-    function transferFromAndCall(address from, address to, uint256 value, bytes calldata data) external returns (bool);
+    function transferFromAndCall(address from, address to, uint256 value, bytes calldata data)
+        external
+        returns (bool);
 
     /**
      * @dev Sets a `value` amount of tokens as the allowance of `spender` over the
@@ -704,13 +706,9 @@ library SafeERC20 {
      *
      * Reverts if the returned value is other than `true`.
      */
-    function transferFromAndCallRelaxed(
-        IERC1363 token,
-        address from,
-        address to,
-        uint256 value,
-        bytes memory data
-    ) internal {
+    function transferFromAndCallRelaxed(IERC1363 token, address from, address to, uint256 value, bytes memory data)
+        internal
+    {
         if (to.code.length == 0) {
             safeTransferFrom(token, from, to, value);
         } else if (!token.transferFromAndCall(from, to, value, data)) {

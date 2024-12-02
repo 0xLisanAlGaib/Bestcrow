@@ -131,7 +131,7 @@ contract Bestcrow is ReentrancyGuard, Ownable {
         } else {
             IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount + adminFee);
         }
-        
+
         nextEscrowId++;
         escrows[nextEscrowId] = Escrow({
             depositor: msg.sender,
