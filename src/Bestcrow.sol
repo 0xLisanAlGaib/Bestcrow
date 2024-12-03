@@ -263,6 +263,35 @@ contract Bestcrow is ReentrancyGuard, Ownable {
         }
     }
 
+    function escrowDetails(uint256 _escrowId)
+        public
+        view
+        returns (
+            address _depositor,
+            address _receiver,
+            address _token,
+            uint256 _amount,
+            uint256 _expiryDate,
+            bool _isActive,
+            bool _isCompleted,
+            bool _isEth,
+            bool _releaseRequested
+        )
+    {
+        Escrow memory escrow = escrows[_escrowId];
+        return (
+            escrow.depositor,
+            escrow.receiver,
+            escrow.token,
+            escrow.amount,
+            escrow.expiryDate,
+            escrow.isActive,
+            escrow.isCompleted,
+            escrow.isEth,
+            escrow.releaseRequested
+        );
+    }
+
     /**
      * @notice Allows contract to receive ETH
      * @dev Required for escrow operations involving ETH

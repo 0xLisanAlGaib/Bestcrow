@@ -131,7 +131,6 @@ contract BestcrowGasTest is Test {
     function test_gasFullWorkflow() public {
         uint256 amount = 1 ether;
         uint256 adminFee = (amount * ADMIN_FEE_BASIS_POINTS) / 10000;
-        uint256 totalGas;
         uint256 gasBefore;
 
         // Create escrow
