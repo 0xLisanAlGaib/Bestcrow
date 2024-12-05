@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Clock, CheckCircle2, XCircle, AlertTriangle, User, UserCheck, Banknote, FileText, Calendar, ShieldAlert } from 'lucide-react'
-import { Timeline } from '@/app/components/Timeline'
+import { Timeline } from '@/components/Timeline'
 
 // Mock function to fetch escrow details (replace with actual API call)
 const fetchEscrowDetails = async (id: string) => {
@@ -59,24 +59,7 @@ export default function EscrowDetails() {
       }
     }
 
-    const connectWallet = async () => {
-      if (typeof window.ethereum !== 'undefined') {
-        try {
-          await window.ethereum.request({ method: 'eth_requestAccounts' })
-          const provider = new ethers.providers.Web3Provider(window.ethereum)
-          const signer = provider.getSigner()
-          const address = await signer.getAddress()
-          setWalletAddress(address)
-        } catch (err) {
-          setError('Failed to connect wallet')
-        }
-      } else {
-        setError('MetaMask is not installed')
-      }
-    }
-
     loadEscrowDetails()
-    connectWallet()
   }, [params.id])
 
   const getStatusColor = (status: string) => {
