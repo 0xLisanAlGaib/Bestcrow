@@ -38,24 +38,18 @@ contract BestcrowFactory is Ownable {
      * @param _receiver The address that can claim the escrowed funds
      * @return The address of the newly deployed Bestcrow contract
      */
-    function createBestcrowAndEscrow(
-        address _token,
-        uint256 _amount,
-        uint256 _expiryDate,
-        address _receiver
-    ) external payable returns (address) {
+    function createBestcrowAndEscrow(address _token, uint256 _amount, uint256 _expiryDate, address _receiver)
+        external
+        payable
+        returns (address)
+    {
         // Deploy new Bestcrow contract with factory owner as the owner
         Bestcrow newBestcrow = new Bestcrow();
 
         // Create the escrow in the new contract
         if (_token == address(0)) {
             // For ETH escrows
-            newBestcrow.createEscrow{value: msg.value}(
-                _token,
-                _amount,
-                _expiryDate,
-                _receiver
-            );
+            newBestcrow.createEscrow{value: msg.value}(_token, _amount, _expiryDate, _receiver);
         } else {
             // For ERC20 escrows
             // Approve the new contract to spend tokens
@@ -65,13 +59,7 @@ contract BestcrowFactory is Ownable {
 
         deployedBestcrows.push(address(newBestcrow));
 
-        emit BestcrowDeployed(
-            address(newBestcrow),
-            msg.sender,
-            _receiver,
-            _token,
-            _amount
-        );
+        emit BestcrowDeployed(address(newBestcrow), msg.sender, _receiver, _token, _amount);
 
         return address(newBestcrow);
     }
