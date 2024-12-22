@@ -1,0 +1,7 @@
+diff --git a/contracts/lib/openzeppelin-contracts b/contracts/lib/openzeppelin-contracts
+index ba8b5cf..a6d1bf9 160000
+--- a/contracts/lib/openzeppelin-contracts
++++ b/contracts/lib/openzeppelin-contracts
+@@ -1 +1 @@
+-Subproject commit ba8b5cfd42d68b1a4dc4d3a17ad3ae6628f1c8e3
++Subproject commit a6d1bf94e0b0c291ec3a57f19c1df12560f6748a
