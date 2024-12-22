@@ -34,7 +34,7 @@ const fetchEscrowDetails = async (id: string) => {
     title: "Web3 Project Escrow",
     description: "Escrow for a decentralized application development project",
     amount: "5 ETH",
-    status: "pending",
+    status: "approved",
     type: "standard",
     depositor: "0xabcdef1234567890abcdef1234567890abcdef12",
     receiver: "0x2345678901234567890123456789012345678901",
