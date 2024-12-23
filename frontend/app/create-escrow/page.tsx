@@ -89,16 +89,18 @@ export default function CreateEscrow() {
 
     console.log(token, amount, expiryDate, receiver, msgValue);
 
-    // Simulating form submission
-    writeContract({
-      abi: ESCROW_CONTRACT_ABI,
-      address: ESCROW_CONTRACT_ADDRESS,
-      functionName: "createEscrow",
-      args: [token, amount, expiryDate, receiver],
-      value: msgValue,
-    });
-
-    setIsSubmitting(false);
+    try {
+      writeContract({
+        abi: ESCROW_CONTRACT_ABI,
+        address: ESCROW_CONTRACT_ADDRESS,
+        functionName: "createEscrow",
+        args: [token, amount, expiryDate, receiver],
+        value: msgValue,
+      });
+    } catch (error) {
+      console.error("Error creating escrow:", error);
+      setIsSubmitting(false);
+    }
   };
 
   // Helper hooks to wait for the transaction to be confirmed
@@ -112,15 +114,18 @@ export default function CreateEscrow() {
 
   // This useEffect is triggered when the transaction is confirmed, to redirect to the escrow page
   useEffect(() => {
-    if (logs && logs !== undefined) {
-      console.log(logs);
-      if (logs && logs.logs && logs.logs[0] && logs.logs[0].topics && logs.logs[0].topics[1]) {
-        console.log(logs.logs[0].topics[1]);
-        console.log(formatUnits(hexToBigInt(logs.logs[0].topics[1]), 0));
-        router.push(`/escrow/${formatUnits(hexToBigInt(logs.logs[0].topics[1]), 0)}`);
-      }
+    if (logs && logs.logs && logs.logs[0] && logs.logs[0].topics && logs.logs[0].topics[1]) {
+      const escrowId = formatUnits(hexToBigInt(logs.logs[0].topics[1]), 0);
+      router.push(`/escrow/${escrowId}`);
     }
-  }, [logs]);
+  }, [logs, router]);
+
+  // Reset isSubmitting when transaction is complete or fails
+  useEffect(() => {
+    if (isConfirmed || (!isConfirming && hash)) {
+      setIsSubmitting(false);
+    }
+  }, [isConfirmed, isConfirming, hash]);
 
   const getLabelColor = (fieldName: string) => {
     return formState[fieldName as keyof typeof formState] ? "text-orange-300" : "text-white";
@@ -274,13 +279,13 @@ export default function CreateEscrow() {
           <CardFooter>
             <Button
               onClick={handleSubmit}
-              disabled={isSubmitting || escrowType === "milestone"}
+              disabled={isSubmitting || isPending || isConfirming || escrowType === "milestone"}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition duration-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? (
+              {isSubmitting || isPending || isConfirming ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating Escrow...
+                  {isConfirming ? "Confirming Transaction..." : "Creating Escrow..."}
                 </>
               ) : (
                 <>

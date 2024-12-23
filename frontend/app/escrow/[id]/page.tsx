@@ -208,6 +208,19 @@ export default function EscrowDetails() {
     }
   };
 
+  const handleAcceptEscrow = async () => {
+    try {
+      await writeContract({
+        address: ESCROW_CONTRACT_ADDRESS,
+        abi: ESCROW_CONTRACT_ABI,
+        functionName: "acceptEscrow",
+        args: [escrowId],
+      });
+    } catch (error) {
+      console.error("Error accepting escrow:", error);
+    }
+  };
+
   const handleApproveRelease = async () => {
     try {
       await writeContract({
@@ -247,8 +260,13 @@ export default function EscrowDetails() {
       if (isReceiver) {
         return (
           <div className="mt-8 flex justify-center space-x-4">
-            <Button variant="default" className="bg-green-600 hover:bg-green-700">
-              Accept
+            <Button
+              variant="default"
+              className="bg-green-600 hover:bg-green-700"
+              onClick={handleAcceptEscrow}
+              disabled={isPending}
+            >
+              {isPending ? "Accepting..." : "Accept"}
             </Button>
             <Button variant="destructive" className="bg-red-600 hover:bg-red-700">
               Decline
