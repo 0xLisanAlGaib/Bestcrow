@@ -1,6 +1,6 @@
 "use client";
 
-import { useReadContract, useAccount } from "wagmi";
+import { useReadContract, useAccount, useWriteContract } from "wagmi";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useParams } from "next/navigation";
@@ -58,6 +58,7 @@ const fetchEscrowDetails = async (id: string) => {
 export default function EscrowDetails() {
   const params = useParams();
   const { address: walletAddress } = useAccount();
+  const { writeContractAsync: writeContract, isPending } = useWriteContract();
   const [escrow, setEscrow] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [escrowId, setEscrowId] = useState<string>("0");
@@ -194,12 +195,49 @@ export default function EscrowDetails() {
     ];
   };
 
+  const handleRequestRelease = async () => {
+    try {
+      await writeContract({
+        address: ESCROW_CONTRACT_ADDRESS,
+        abi: ESCROW_CONTRACT_ABI,
+        functionName: "requestRelease",
+        args: [escrowId],
+      });
+    } catch (error) {
+      console.error("Error requesting release:", error);
+    }
+  };
+
+  const handleApproveRelease = async () => {
+    try {
+      await writeContract({
+        address: ESCROW_CONTRACT_ADDRESS,
+        abi: ESCROW_CONTRACT_ABI,
+        functionName: "approveRelease",
+        args: [escrowId],
+      });
+    } catch (error) {
+      console.error("Error approving release:", error);
+    }
+  };
+
   const renderBottomButtons = () => {
     if (!escrowDetails) return null;
 
     const status = getEscrowStatus(escrowDetails);
     const isDepositor = walletAddress?.toLowerCase() === escrowDetails[0]?.toLowerCase();
     const isReceiver = walletAddress?.toLowerCase() === escrowDetails[1]?.toLowerCase();
+
+    if (status === "completed") {
+      return (
+        <div className="mt-8 text-center">
+          <div className="bg-blue-500/20 text-blue-300 py-3 px-4 rounded-lg inline-flex items-center">
+            <CheckCircle2 className="w-5 h-5 mr-2" />
+            The escrow has been completed!
+          </div>
+        </div>
+      );
+    }
 
     if (status === "pending") {
       if (isDepositor) {
@@ -218,6 +256,36 @@ export default function EscrowDetails() {
           </div>
         );
       }
+    }
+
+    if (status === "active" && isReceiver) {
+      return (
+        <div className="mt-8 flex justify-center">
+          <Button
+            variant="default"
+            className="bg-blue-600 hover:bg-blue-700"
+            onClick={handleRequestRelease}
+            disabled={isPending}
+          >
+            {isPending ? "Requesting..." : "Request Release"}
+          </Button>
+        </div>
+      );
+    }
+
+    if (status === "release_requested" && isDepositor) {
+      return (
+        <div className="mt-8 flex justify-center">
+          <Button
+            variant="default"
+            className="bg-purple-600 hover:bg-purple-700"
+            onClick={handleApproveRelease}
+            disabled={isPending}
+          >
+            {isPending ? "Approving..." : "Approve Release"}
+          </Button>
+        </div>
+      );
     }
 
     return (
