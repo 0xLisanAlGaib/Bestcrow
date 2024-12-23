@@ -88,6 +88,22 @@ export default function EscrowDetails() {
     }
   }, [escrowData]);
 
+  const getEscrowStatus = (details: any) => {
+    if (!details) return "unknown";
+
+    const isActive = details[5];
+    const isCompleted = details[6];
+    const releaseRequested = details[8];
+
+    if (!isActive && !isCompleted && !releaseRequested) return "pending";
+    if (isActive && !isCompleted && !releaseRequested) return "active";
+    if (isActive && !isCompleted && releaseRequested) return "release_requested";
+    if (!isActive && isCompleted && !releaseRequested) return "expired";
+    if (isCompleted) return "completed";
+
+    return "unknown";
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "active":
@@ -98,6 +114,8 @@ export default function EscrowDetails() {
         return "bg-yellow-500";
       case "expired":
         return "bg-red-500";
+      case "release_requested":
+        return "bg-purple-500";
       default:
         return "bg-gray-500";
     }
@@ -113,6 +131,8 @@ export default function EscrowDetails() {
         return <AlertTriangle className="w-5 h-5" />;
       case "expired":
         return <XCircle className="w-5 h-5" />;
+      case "release_requested":
+        return <Banknote className="w-5 h-5" />;
       default:
         return null;
     }
@@ -120,6 +140,43 @@ export default function EscrowDetails() {
 
   const truncateAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
+  const getTimelineSteps = (details: any) => {
+    if (!details) return [];
+
+    const isActive = details[5];
+    const isCompleted = details[6];
+    const releaseRequested = details[8];
+    const depositor = details[0];
+    const receiver = details[1];
+
+    const steps = [
+      {
+        title: "Escrow Created",
+        description: `Escrow created by ${truncateAddress(depositor)}`,
+        completed: true, // Always completed as we're viewing an existing escrow
+      },
+      {
+        title: "Awaiting Acceptance",
+        description: `Waiting for ${truncateAddress(receiver)} to accept and provide collateral`,
+        completed: isActive || isCompleted,
+      },
+      {
+        title: "Payment Release Requested",
+        description: `${truncateAddress(receiver)} has requested the release of funds`,
+        completed: releaseRequested || isCompleted,
+      },
+      {
+        title: "Payment Released",
+        description: isCompleted
+          ? `Funds have been released to ${truncateAddress(receiver)}`
+          : `Awaiting fund release to ${truncateAddress(receiver)}`,
+        completed: isCompleted,
+      },
+    ];
+
+    return steps;
   };
 
   if (loading) {
@@ -153,9 +210,9 @@ export default function EscrowDetails() {
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <span className="text-white">Escrow Details</span>
-                <Badge className={`${getStatusColor(escrow.status)} text-white flex items-center`}>
-                  {getStatusIcon(escrow.status)}
-                  <span className="ml-1 text-white">{escrow.status}</span>
+                <Badge className={`${getStatusColor(getEscrowStatus(escrowDetails))} text-white flex items-center`}>
+                  {getStatusIcon(getEscrowStatus(escrowDetails))}
+                  <span className="ml-1 text-white capitalize">{getEscrowStatus(escrowDetails).replace("_", " ")}</span>
                 </Badge>
               </CardTitle>
             </CardHeader>
@@ -166,7 +223,16 @@ export default function EscrowDetails() {
               </p>
               <p className="text-white">
                 <Banknote className="inline mr-2 text-white" />
-                Amount: {escrowDetails !== null ? escrowDetails[4] : "NA"}
+                Amount:{" "}
+                {escrowDetails !== null
+                  ? `${formatUnits(escrowDetails[3], 18)} ${
+                      escrowDetails[7]
+                        ? "ETH"
+                        : escrowDetails[2] === "0x0000000000000000000000000000000000000000"
+                        ? "ETH"
+                        : "Tokens"
+                    }`
+                  : "NA"}
               </p>
               <p className="text-white">
                 <Calendar className="inline mr-2 text-white" />
@@ -174,7 +240,15 @@ export default function EscrowDetails() {
               </p>
               <p className="text-white">
                 <Calendar className="inline mr-2 text-white" />
-                Expires: {escrow.expirationDate}
+                Expires:{" "}
+                {escrowDetails !== null
+                  ? new Date(Number(escrowDetails[4]) * 1000).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                      timeZone: "UTC",
+                    }) + " UTC"
+                  : "NA"}
               </p>
             </CardContent>
           </Card>
@@ -200,7 +274,7 @@ export default function EscrowDetails() {
               <CardTitle className="text-white">Escrow Timeline</CardTitle>
             </CardHeader>
             <CardContent>
-              <Timeline steps={escrow.steps} />
+              <Timeline steps={escrowDetails ? getTimelineSteps(escrowDetails) : []} />
             </CardContent>
           </Card>
 

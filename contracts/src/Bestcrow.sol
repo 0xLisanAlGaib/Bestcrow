@@ -213,7 +213,6 @@ contract Bestcrow is ReentrancyGuard, Ownable {
         }
 
         escrow.isCompleted = true;
-        escrow.isActive = false;
         emit EscrowCompleted(_escrowId, escrow.receiver, totalToReceiver);
     }
 

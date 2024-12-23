@@ -45,6 +45,10 @@ escrow-withdraw:; cast send --private-key=${PRIVATE_KEY_ADMIN} --rpc-url=${HOLES
 
 escrow-e2e:; make escrow-create && sleep 5 && make escrow-accept && sleep 5 && make escrow-request && sleep 5 && make escrow-approve && sleep 5 && make escrow-withdraw
 
+escrow-e2e-active:; make escrow-create && sleep 5 && make escrow-accept
+
+escrow-e2e-request:; make escrow-create && sleep 5 && make escrow-accept && sleep 5 && make escrow-request
+
 
 escrow-r-create:; cast send --json --value=1005000000000000 --private-key=${PRIVATE_KEY_1} --rpc-url=${HOLESKY_RPC_URL} 0xB133765B8beCaf440bAD4f4534a6Dc4BbE87234A "createEscrow(address,uint256,uint256,address)(uint256)" 0x0000000000000000000000000000000000000000 1000000000000000 $$(( $$(date +%s) + 60 )) ${DEV_2} | jq -r '.logs[0].topics[1]' | cast --to-dec > .escrow-id
 

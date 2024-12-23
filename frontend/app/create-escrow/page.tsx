@@ -17,6 +17,31 @@ import { ESCROW_CONTRACT_ABI } from "@/constants/abi";
 import { parseUnits, parseEther } from "viem";
 import { ESCROW_FEE, DENOMINATOR, ESCROW_FEE_BASIS_POINTS } from "@/constants/fees";
 import { hexToString, hexToBigInt, formatUnits } from "viem";
+import dynamic from "next/dynamic";
+import "react-datepicker/dist/react-datepicker.css";
+
+// @ts-ignore
+const ReactDatePicker = dynamic(() => import("react-datepicker"), { ssr: false });
+
+interface CustomDatePickerProps {
+  selected: Date;
+  onChange: (date: Date | null) => void;
+}
+
+const CustomDatePicker = ({ selected, onChange }: CustomDatePickerProps) => (
+  // @ts-ignore
+  <ReactDatePicker
+    selected={selected}
+    onChange={onChange}
+    showTimeSelect
+    timeFormat="HH:mm"
+    timeIntervals={15}
+    dateFormat="MMMM d, yyyy h:mm aa"
+    minDate={new Date()}
+    className="w-full bg-gray-700 border-gray-600 text-white placeholder-gray-400 rounded-md px-3 py-2"
+    wrapperClassName="w-full"
+  />
+);
 
 export default function CreateEscrow() {
   const router = useRouter();
@@ -30,7 +55,7 @@ export default function CreateEscrow() {
     receiver: "",
     tokenAddress: "",
     amount: "",
-    expiryDate: "",
+    expiryDate: new Date(),
   });
   const [escrowType, setEscrowType] = useState("standard");
 
@@ -46,7 +71,7 @@ export default function CreateEscrow() {
     // Params
     const token = "0x0000000000000000000000000000000000000000";
     const amount = parseUnits(formState.amount, 18);
-    const expiryDate = parseUnits(formState.expiryDate, 0);
+    const expiryDate = parseUnits(Math.floor(formState.expiryDate.getTime() / 1000).toString(), 0);
     const receiver = formState.receiver;
     const msgValue = amount + (amount * ESCROW_FEE) / DENOMINATOR;
 
@@ -194,18 +219,17 @@ export default function CreateEscrow() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="expiryDate" className={`${getLabelColor("amount")} transition-colors duration-300`}>
+                <Label htmlFor="expiryDate" className="text-white">
                   Expiry Date
                 </Label>
-                <Input
-                  id="expiryDate"
-                  name="expiryDate"
-                  value={formState.expiryDate}
-                  onChange={handleInputChange}
-                  type="number"
-                  placeholder="Unix Timestamp"
-                  className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                />
+                <div className="relative">
+                  <CustomDatePicker
+                    selected={formState.expiryDate}
+                    onChange={(date: Date | null) =>
+                      setFormState((prev) => ({ ...prev, expiryDate: date || new Date() }))
+                    }
+                  />
+                </div>
               </div>
               <div className="space-y-2">
                 <Label className="text-white">Escrow Type</Label>
