@@ -23,6 +23,18 @@ import "react-datepicker/dist/react-datepicker.css";
 // @ts-ignore
 const ReactDatePicker = dynamic(() => import("react-datepicker"), { ssr: false });
 
+// Add CSS to remove spinner buttons
+const styles = `
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type=number] {
+    -moz-appearance: textfield;
+  }
+`;
+
 interface CustomDatePickerProps {
   selected: Date;
   onChange: (date: Date | null) => void;
@@ -116,6 +128,9 @@ export default function CreateEscrow() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center p-4">
+      <style jsx global>
+        {styles}
+      </style>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -213,6 +228,7 @@ export default function CreateEscrow() {
                   value={formState.amount}
                   onChange={handleInputChange}
                   type="number"
+                  min="0"
                   step="0.000001"
                   placeholder="0.00"
                   className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"

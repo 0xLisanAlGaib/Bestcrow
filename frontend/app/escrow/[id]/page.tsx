@@ -1,6 +1,6 @@
 "use client";
 
-import { useReadContract } from "wagmi";
+import { useReadContract, useAccount } from "wagmi";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useParams } from "next/navigation";
@@ -57,6 +57,7 @@ const fetchEscrowDetails = async (id: string) => {
 
 export default function EscrowDetails() {
   const params = useParams();
+  const { address: walletAddress } = useAccount();
   const [escrow, setEscrow] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [escrowId, setEscrowId] = useState<string>("0");
@@ -95,11 +96,11 @@ export default function EscrowDetails() {
     const isCompleted = details[6];
     const releaseRequested = details[8];
 
+    if (!isActive && !releaseRequested && isCompleted) return "expired";
     if (!isActive && !isCompleted && !releaseRequested) return "pending";
     if (isActive && !isCompleted && !releaseRequested) return "active";
     if (isActive && !isCompleted && releaseRequested) return "release_requested";
-    if (!isActive && isCompleted && !releaseRequested) return "expired";
-    if (isCompleted) return "completed";
+    if (isCompleted && releaseRequested) return "completed";
 
     return "unknown";
   };
@@ -151,11 +152,26 @@ export default function EscrowDetails() {
     const depositor = details[0];
     const receiver = details[1];
 
-    const steps = [
+    if (!isActive && !releaseRequested && isCompleted) {
+      return [
+        {
+          title: "Escrow Created",
+          description: `Escrow created by ${truncateAddress(depositor)}`,
+          completed: true,
+        },
+        {
+          title: "Escrow Expired",
+          description: `${truncateAddress(receiver)} did not accept the escrow`,
+          completed: true,
+        },
+      ];
+    }
+
+    return [
       {
         title: "Escrow Created",
         description: `Escrow created by ${truncateAddress(depositor)}`,
-        completed: true, // Always completed as we're viewing an existing escrow
+        completed: true,
       },
       {
         title: "Awaiting Acceptance",
@@ -169,14 +185,49 @@ export default function EscrowDetails() {
       },
       {
         title: "Payment Released",
-        description: isCompleted
-          ? `Funds have been released to ${truncateAddress(receiver)}`
-          : `Awaiting fund release to ${truncateAddress(receiver)}`,
-        completed: isCompleted,
+        description:
+          isCompleted && releaseRequested
+            ? `Funds have been released to ${truncateAddress(receiver)}`
+            : `Awaiting fund release to ${truncateAddress(receiver)}`,
+        completed: isCompleted && releaseRequested,
       },
     ];
+  };
 
-    return steps;
+  const renderBottomButtons = () => {
+    if (!escrowDetails) return null;
+
+    const status = getEscrowStatus(escrowDetails);
+    const isDepositor = walletAddress?.toLowerCase() === escrowDetails[0]?.toLowerCase();
+    const isReceiver = walletAddress?.toLowerCase() === escrowDetails[1]?.toLowerCase();
+
+    if (status === "pending") {
+      if (isDepositor) {
+        return <div className="mt-8 text-center text-gray-400">Waiting for the receiver to accept the escrow</div>;
+      }
+
+      if (isReceiver) {
+        return (
+          <div className="mt-8 flex justify-center space-x-4">
+            <Button variant="default" className="bg-green-600 hover:bg-green-700">
+              Accept
+            </Button>
+            <Button variant="destructive" className="bg-red-600 hover:bg-red-700">
+              Decline
+            </Button>
+          </div>
+        );
+      }
+    }
+
+    return (
+      <div className="mt-8 flex justify-center space-x-4">
+        <Button variant="default" className="bg-green-600 hover:bg-green-700">
+          Approve
+        </Button>
+        <Button variant="destructive">Dispute</Button>
+      </div>
+    );
   };
 
   if (loading) {
@@ -288,12 +339,7 @@ export default function EscrowDetails() {
           </Card>
         </div>
 
-        <div className="mt-8 flex justify-center space-x-4">
-          <Button variant="default" className="bg-green-600 hover:bg-green-700">
-            Approve
-          </Button>
-          <Button variant="destructive">Dispute</Button>
-        </div>
+        {renderBottomButtons()}
       </motion.div>
     </div>
   );
