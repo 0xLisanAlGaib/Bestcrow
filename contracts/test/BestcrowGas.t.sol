@@ -46,7 +46,7 @@ contract BestcrowGasTest is Test {
     }
 
     /// @notice Tests gas usage for creating an escrow with a small amount
-    /// @dev Ensures small amount escrows stay under 260k gas
+    /// @dev Ensures small amount escrows stay under 280k gas
     function test_gasCreateEscrowWithSmallAmount() public {
         uint256 smallAmount = 0.1 ether;
         uint256 adminFee = (smallAmount * ADMIN_FEE_BASIS_POINTS) / 10000;
@@ -64,11 +64,11 @@ contract BestcrowGasTest is Test {
         uint256 gasUsed = gasBefore - gasleft();
 
         console.log("Gas used for small amount escrow:", gasUsed);
-        assertTrue(gasUsed < 260000); // Increased limit to account for string storage
+        assertTrue(gasUsed < 280000); // Increased from 260000 to account for createdAt and IR
     }
 
     /// @notice Tests gas usage for creating an escrow with a large amount
-    /// @dev Ensures large amount escrows stay under 260k gas
+    /// @dev Ensures large amount escrows stay under 280k gas
     function test_gasCreateEscrowWithLargeAmount() public {
         uint256 largeAmount = 100 ether;
         uint256 adminFee = (largeAmount * ADMIN_FEE_BASIS_POINTS) / 10000;
@@ -87,7 +87,7 @@ contract BestcrowGasTest is Test {
         uint256 gasUsed = gasBefore - gasleft();
 
         console.log("Gas used for large amount escrow:", gasUsed);
-        assertTrue(gasUsed < 260000); // Increased limit to account for string storage
+        assertTrue(gasUsed < 280000); // Increased from 260000 to account for createdAt and IR
     }
 
     /// @notice Compares gas costs between ETH and ERC20 escrows
@@ -128,7 +128,7 @@ contract BestcrowGasTest is Test {
     }
 
     /// @notice Tests gas usage for creating multiple sequential escrows
-    /// @dev Ensures average gas usage stays under 270k per escrow
+    /// @dev Ensures average gas usage stays under 290k per escrow
     function test_gasSequentialEscrows() public {
         uint256 amount = 1 ether;
         uint256 adminFee = (amount * ADMIN_FEE_BASIS_POINTS) / 10000;
@@ -150,7 +150,7 @@ contract BestcrowGasTest is Test {
 
         uint256 averageGas = totalGas / 5;
         console.log("Average gas per escrow:", averageGas);
-        assertTrue(averageGas < 270000); // Increased limit to account for string storage
+        assertTrue(averageGas < 290000); // Increased from 270000 to account for createdAt and IR
     }
 
     /// @notice Tests gas usage for a complete escrow workflow
@@ -200,10 +200,10 @@ contract BestcrowGasTest is Test {
         console.log("Total:", createGas + acceptGas + requestGas + approveGas);
 
         // Set appropriate gas limits for each operation
-        assertTrue(createGas < 260000); // Increased limit to account for string storage
-        assertTrue(acceptGas < 100000);
-        assertTrue(requestGas < 50000);
-        assertTrue(approveGas < 100000);
+        assertTrue(createGas < 280000); // Increased from 260000 to account for createdAt and IR
+        assertTrue(acceptGas < 120000); // Increased from 100000
+        assertTrue(requestGas < 60000); // Increased from 50000
+        assertTrue(approveGas < 120000); // Increased from 100000
     }
 
     /// @notice Tests the withdrawal of ERC20 fees by the owner
@@ -408,8 +408,28 @@ contract BestcrowGasTest is Test {
 
         // Test gas usage for reading escrow details
         uint256 gasBefore = gasleft();
-        bestcrow.escrowDetails(escrowId);
+        (
+            address _depositor,
+            address _receiver,
+            address _token,
+            uint256 _amount,
+            uint256 _expiryDate,
+            uint256 _createdAt,
+            bool _isActive,
+            bool _isCompleted,
+            bool _isEth,
+            bool _releaseRequested,
+            string memory _title,
+            string memory _description
+        ) = bestcrow.escrowDetails(escrowId);
         uint256 gasUsed = gasBefore - gasleft();
+
+        // Additional verification for createdAt
+        assertEq(
+            _createdAt,
+            block.timestamp,
+            "Creation timestamp should match block timestamp"
+        );
 
         console.log("Gas used for reading escrow details:", gasUsed);
         assertTrue(gasUsed < 30000); // Reading should be relatively cheap

@@ -64,6 +64,7 @@ contract Bestcrow is ReentrancyGuard, Ownable {
         address token; // The token being escrowed (use address(0) for ETH).
         uint256 amount; // The amount to be held in escrow.
         uint256 expiryDate; // The timestamp when the escrow expires.
+        uint256 createdAt; // The timestamp when the escrow was created
         bool isActive; // Whether the escrow is active.
         bool isCompleted; // Whether the escrow has been completed.
         bool isEth; // Whether the escrow is for ETH.
@@ -158,6 +159,7 @@ contract Bestcrow is ReentrancyGuard, Ownable {
             token: _token,
             amount: _amount,
             expiryDate: _expiryDate,
+            createdAt: block.timestamp,
             isActive: false,
             isCompleted: false,
             isEth: isEth,
@@ -327,6 +329,7 @@ contract Bestcrow is ReentrancyGuard, Ownable {
             address _token,
             uint256 _amount,
             uint256 _expiryDate,
+            uint256 _createdAt,
             bool _isActive,
             bool _isCompleted,
             bool _isEth,
@@ -342,6 +345,7 @@ contract Bestcrow is ReentrancyGuard, Ownable {
             escrow.token,
             escrow.amount,
             escrow.expiryDate,
+            escrow.createdAt,
             escrow.isActive,
             escrow.isCompleted,
             escrow.isEth,

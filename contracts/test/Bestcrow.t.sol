@@ -83,30 +83,32 @@ contract BestcrowTest is Test {
         );
 
         (
-            address _depositor,
-            address _receiver,
-            address _token,
-            uint256 _amount,
-            uint256 _expiryDate,
-            bool _isActive,
-            bool _isCompleted,
-            bool _isEth,
-            bool _releaseRequested,
-            string memory _title,
-            string memory _description
+            address depositor_,
+            address receiver_,
+            address token_,
+            uint256 amount_,
+            uint256 expiryDate_,
+            uint256 createdAt_,
+            bool isActive_,
+            bool isCompleted_,
+            bool isEth_,
+            bool releaseRequested_,
+            string memory title_,
+            string memory description_
         ) = bestcrow.escrowDetails(escrowId);
 
-        assertEq(_depositor, depositor);
-        assertEq(_receiver, receiver);
-        assertEq(_token, address(0));
-        assertEq(_amount, AMOUNT);
-        assertEq(_expiryDate, block.timestamp + DAYS_TO_EXPIRY * 1 days);
-        assertFalse(_isActive);
-        assertFalse(_isCompleted);
-        assertTrue(_isEth);
-        assertFalse(_releaseRequested);
-        assertEq(_title, "Test ETH Escrow");
-        assertEq(_description, "This is a test escrow with ETH");
+        assertEq(depositor_, depositor);
+        assertEq(receiver_, receiver);
+        assertEq(token_, address(0));
+        assertEq(amount_, AMOUNT);
+        assertEq(expiryDate_, block.timestamp + DAYS_TO_EXPIRY * 1 days);
+        assertEq(createdAt_, block.timestamp);
+        assertFalse(isActive_);
+        assertFalse(isCompleted_);
+        assertTrue(isEth_);
+        assertFalse(releaseRequested_);
+        assertEq(title_, "Test ETH Escrow");
+        assertEq(description_, "This is a test escrow with ETH");
     }
 
     /// @notice Test creating an escrow with empty title
@@ -143,9 +145,9 @@ contract BestcrowTest is Test {
             ""
         );
 
-        (, , , , , , , , , , string memory _description) = bestcrow
-            .escrowDetails(escrowId);
-        assertEq(_description, "");
+        string memory description_;
+        (, , , , , , , , , , , description_) = bestcrow.escrowDetails(escrowId);
+        assertEq(description_, "");
     }
 
     /// @notice Test creating an escrow with long title and description
@@ -169,21 +171,13 @@ contract BestcrowTest is Test {
             longDescription
         );
 
-        (
-            ,
-            ,
-            ,
-            ,
-            ,
-            ,
-            ,
-            ,
-            ,
-            string memory _title,
-            string memory _description
-        ) = bestcrow.escrowDetails(escrowId);
-        assertEq(_title, longTitle);
-        assertEq(_description, longDescription);
+        string memory title_;
+        string memory description_;
+        (, , , , , , , , , , title_, description_) = bestcrow.escrowDetails(
+            escrowId
+        );
+        assertEq(title_, longTitle);
+        assertEq(description_, longDescription);
     }
 
     /// @notice Test accepting an ETH escrow
@@ -209,8 +203,9 @@ contract BestcrowTest is Test {
         vm.prank(receiver);
         bestcrow.acceptEscrow{value: collateralAmount}(escrowId);
 
-        (, , , , , bool isActive, , , , , ) = bestcrow.escrowDetails(escrowId);
-        assertTrue(isActive);
+        bool isActive_;
+        (, , , , , , isActive_, , , , , ) = bestcrow.escrowDetails(escrowId);
+        assertTrue(isActive_);
     }
 
     /// @notice Test the complete flow of requesting and approving release for ETH escrow
@@ -311,11 +306,10 @@ contract BestcrowTest is Test {
         bestcrow.approveRelease(escrowId);
 
         // Verify the escrow is completed and fees are available
-        (, , , , , , bool isCompleted, , , , ) = bestcrow.escrowDetails(
-            escrowId
-        );
+        bool isCompleted_;
+        (, , , , , , , isCompleted_, , , , ) = bestcrow.escrowDetails(escrowId);
         assertTrue(
-            isCompleted,
+            isCompleted_,
             "Escrow should be completed before withdrawing fees"
         );
 
@@ -821,8 +815,9 @@ contract BestcrowTest is Test {
         vm.prank(receiver);
         bestcrow.acceptEscrow{value: collateralAmount}(escrowId);
 
-        (, , , , , bool isActive, , , , , ) = bestcrow.escrowDetails(escrowId);
-        assertTrue(isActive);
+        bool isActive_;
+        (, , , , , , isActive_, , , , , ) = bestcrow.escrowDetails(escrowId);
+        assertTrue(isActive_);
     }
 
     /// @notice Test failure when accepting escrow exactly at expiry
@@ -868,8 +863,9 @@ contract BestcrowTest is Test {
             "Testing minimum amount escrow"
         );
 
-        (, , , uint256 amount, , , , , , , ) = bestcrow.escrowDetails(escrowId);
-        assertEq(amount, minAmount);
+        uint256 amount_;
+        (, , , amount_, , , , , , , , ) = bestcrow.escrowDetails(escrowId);
+        assertEq(amount_, minAmount);
     }
 
     /// @notice Test creating escrow with large amount
@@ -891,8 +887,9 @@ contract BestcrowTest is Test {
             "Testing large amount escrow"
         );
 
-        (, , , uint256 amount, , , , , , , ) = bestcrow.escrowDetails(escrowId);
-        assertEq(amount, largeAmount);
+        uint256 amount_;
+        (, , , amount_, , , , , , , , ) = bestcrow.escrowDetails(escrowId);
+        assertEq(amount_, largeAmount);
     }
 
     // Multiple Escrows Test
@@ -928,15 +925,13 @@ contract BestcrowTest is Test {
         assertEq(escrowId2, escrowId1 + 1);
 
         // Verify both escrows are independent
-        (address depositor1, , , , , , , , , , ) = bestcrow.escrowDetails(
-            escrowId1
-        );
-        (address depositor2, , , , , , , , , , ) = bestcrow.escrowDetails(
-            escrowId2
-        );
+        address depositor1_;
+        address depositor2_;
+        (depositor1_, , , , , , , , , , , ) = bestcrow.escrowDetails(escrowId1);
+        (depositor2_, , , , , , , , , , , ) = bestcrow.escrowDetails(escrowId2);
 
-        assertEq(depositor1, depositor);
-        assertEq(depositor2, depositor);
+        assertEq(depositor1_, depositor);
+        assertEq(depositor2_, depositor);
     }
 
     // Helper function to log escrow state
@@ -944,32 +939,47 @@ contract BestcrowTest is Test {
         string memory stage,
         uint256 escrowId
     ) internal view {
+        address depositor_;
+        address receiver_;
+        address token_;
+        uint256 amount_;
+        uint256 expiryDate_;
+        uint256 createdAt_;
+        bool isActive_;
+        bool isCompleted_;
+        bool isEth_;
+        bool releaseRequested_;
+        string memory title_;
+        string memory description_;
+
         (
-            address _depositor,
-            address _receiver,
-            address _token,
-            uint256 _amount,
-            uint256 _expiryDate,
-            bool _isActive,
-            bool _isCompleted,
-            bool _isEth,
-            bool _releaseRequested,
-            string memory _title,
-            string memory _description
+            depositor_,
+            receiver_,
+            token_,
+            amount_,
+            expiryDate_,
+            createdAt_,
+            isActive_,
+            isCompleted_,
+            isEth_,
+            releaseRequested_,
+            title_,
+            description_
         ) = bestcrow.escrowDetails(escrowId);
 
         console.log("\n=== Escrow State: %s ===", stage);
-        console.log("Depositor:", _depositor);
-        console.log("Receiver:", _receiver);
-        console.log("Token:", _token);
-        console.log("Amount:", _amount);
-        console.log("Expiry Date:", _expiryDate);
-        console.log("Is Active:", _isActive);
-        console.log("Is Completed:", _isCompleted);
-        console.log("Is ETH:", _isEth);
-        console.log("Release Requested:", _releaseRequested);
-        console.log("Title:", _title);
-        console.log("Description:", _description);
+        console.log("Depositor:", depositor_);
+        console.log("Receiver:", receiver_);
+        console.log("Token:", token_);
+        console.log("Amount:", amount_);
+        console.log("Expiry Date:", expiryDate_);
+        console.log("Created At:", createdAt_);
+        console.log("Is Active:", isActive_);
+        console.log("Is Completed:", isCompleted_);
+        console.log("Is ETH:", isEth_);
+        console.log("Release Requested:", releaseRequested_);
+        console.log("Title:", title_);
+        console.log("Description:", description_);
         console.log("============================\n");
     }
 }
