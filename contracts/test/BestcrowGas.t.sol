@@ -46,7 +46,7 @@ contract BestcrowGasTest is Test {
     }
 
     /// @notice Tests gas usage for creating an escrow with a small amount
-    /// @dev Ensures small amount escrows stay under 160k gas
+    /// @dev Ensures small amount escrows stay under 260k gas
     function test_gasCreateEscrowWithSmallAmount() public {
         uint256 smallAmount = 0.1 ether;
         uint256 adminFee = (smallAmount * ADMIN_FEE_BASIS_POINTS) / 10000;
@@ -57,16 +57,18 @@ contract BestcrowGasTest is Test {
             address(0),
             smallAmount,
             block.timestamp + DAYS_TO_EXPIRY * 1 days,
-            receiver
+            receiver,
+            "Small Amount Escrow",
+            "Testing gas usage with small amount"
         );
         uint256 gasUsed = gasBefore - gasleft();
 
         console.log("Gas used for small amount escrow:", gasUsed);
-        assertTrue(gasUsed < 160000);
+        assertTrue(gasUsed < 260000); // Increased limit to account for string storage
     }
 
     /// @notice Tests gas usage for creating an escrow with a large amount
-    /// @dev Ensures large amount escrows stay under 160k gas
+    /// @dev Ensures large amount escrows stay under 260k gas
     function test_gasCreateEscrowWithLargeAmount() public {
         uint256 largeAmount = 100 ether;
         uint256 adminFee = (largeAmount * ADMIN_FEE_BASIS_POINTS) / 10000;
@@ -78,12 +80,14 @@ contract BestcrowGasTest is Test {
             address(0),
             largeAmount,
             block.timestamp + DAYS_TO_EXPIRY * 1 days,
-            receiver
+            receiver,
+            "Large Amount Escrow",
+            "Testing gas usage with large amount"
         );
         uint256 gasUsed = gasBefore - gasleft();
 
         console.log("Gas used for large amount escrow:", gasUsed);
-        assertTrue(gasUsed < 160000);
+        assertTrue(gasUsed < 260000); // Increased limit to account for string storage
     }
 
     /// @notice Compares gas costs between ETH and ERC20 escrows
@@ -99,7 +103,9 @@ contract BestcrowGasTest is Test {
             address(0),
             amount,
             block.timestamp + DAYS_TO_EXPIRY * 1 days,
-            receiver
+            receiver,
+            "ETH vs ERC20 Test - ETH",
+            "Testing gas comparison for ETH escrow"
         );
         uint256 ethGasUsed = gasBefore - gasleft();
 
@@ -110,7 +116,9 @@ contract BestcrowGasTest is Test {
             address(token),
             amount,
             block.timestamp + DAYS_TO_EXPIRY * 1 days,
-            receiver
+            receiver,
+            "ETH vs ERC20 Test - ERC20",
+            "Testing gas comparison for ERC20 escrow"
         );
         uint256 erc20GasUsed = gasBefore - gasleft();
 
@@ -120,7 +128,7 @@ contract BestcrowGasTest is Test {
     }
 
     /// @notice Tests gas usage for creating multiple sequential escrows
-    /// @dev Ensures average gas usage stays under 135k per escrow
+    /// @dev Ensures average gas usage stays under 270k per escrow
     function test_gasSequentialEscrows() public {
         uint256 amount = 1 ether;
         uint256 adminFee = (amount * ADMIN_FEE_BASIS_POINTS) / 10000;
@@ -133,14 +141,16 @@ contract BestcrowGasTest is Test {
                 address(0),
                 amount,
                 block.timestamp + DAYS_TO_EXPIRY * 1 days,
-                receiver
+                receiver,
+                string(abi.encodePacked("Sequential Test #", i + 1)),
+                "Testing gas usage for sequential escrows"
             );
             totalGas += gasBefore - gasleft();
         }
 
         uint256 averageGas = totalGas / 5;
         console.log("Average gas per escrow:", averageGas);
-        assertTrue(averageGas < 135000);
+        assertTrue(averageGas < 270000); // Increased limit to account for string storage
     }
 
     /// @notice Tests gas usage for a complete escrow workflow
@@ -157,7 +167,9 @@ contract BestcrowGasTest is Test {
             address(0),
             amount,
             block.timestamp + DAYS_TO_EXPIRY * 1 days,
-            receiver
+            receiver,
+            "Full Workflow Test",
+            "Testing gas usage for complete workflow"
         );
         uint256 createGas = gasBefore - gasleft();
 
@@ -188,7 +200,7 @@ contract BestcrowGasTest is Test {
         console.log("Total:", createGas + acceptGas + requestGas + approveGas);
 
         // Set appropriate gas limits for each operation
-        assertTrue(createGas < 160000);
+        assertTrue(createGas < 260000); // Increased limit to account for string storage
         assertTrue(acceptGas < 100000);
         assertTrue(requestGas < 50000);
         assertTrue(approveGas < 100000);
@@ -211,7 +223,9 @@ contract BestcrowGasTest is Test {
             address(token),
             amount,
             block.timestamp + DAYS_TO_EXPIRY * 1 days,
-            receiver
+            receiver,
+            "ERC20 Fee Test",
+            "Testing withdrawal of ERC20 fees"
         );
 
         // Accept escrow
@@ -250,7 +264,9 @@ contract BestcrowGasTest is Test {
             address(0),
             amount,
             block.timestamp + DAYS_TO_EXPIRY * 1 days,
-            receiver
+            receiver,
+            "Minimum Operations Test",
+            "Testing minimum required operations"
         );
 
         uint256 createGas = gasBefore - gasleft();
@@ -283,7 +299,7 @@ contract BestcrowGasTest is Test {
         console.log("Total:", totalGas);
 
         // Assert reasonable gas limits
-        assertTrue(totalGas < 400000); // Adjust based on your requirements
+        assertTrue(totalGas < 450000); // Increased limit to account for string storage
     }
 
     /// @notice Tests gas usage for refunding an expired escrow
@@ -298,7 +314,9 @@ contract BestcrowGasTest is Test {
             address(0),
             amount,
             block.timestamp + DAYS_TO_EXPIRY * 1 days,
-            receiver
+            receiver,
+            "Refund Test",
+            "Testing gas usage for refund operation"
         );
 
         // Fast forward past expiry
@@ -311,6 +329,89 @@ contract BestcrowGasTest is Test {
         uint256 gasUsed = gasBefore - gasleft();
 
         console.log("Gas used for refund:", gasUsed);
-        assertTrue(gasUsed < 100000); // Adjust based on your requirements
+        assertTrue(gasUsed < 100000);
+    }
+
+    /// @notice Tests gas usage with varying title and description lengths
+    /// @dev Ensures gas costs stay reasonable with different string lengths
+    function test_gasVaryingStringLengths() public {
+        uint256 amount = 1 ether;
+        uint256 adminFee = (amount * ADMIN_FEE_BASIS_POINTS) / 10000;
+        uint256 totalAmount = amount + adminFee;
+
+        // Test short strings
+        vm.prank(depositor);
+        uint256 gasBefore = gasleft();
+        bestcrow.createEscrow{value: totalAmount}(
+            address(0),
+            amount,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver,
+            "Short",
+            "Brief"
+        );
+        uint256 shortStringsGas = gasBefore - gasleft();
+
+        // Test medium strings
+        vm.prank(depositor);
+        gasBefore = gasleft();
+        bestcrow.createEscrow{value: totalAmount}(
+            address(0),
+            amount,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver,
+            "Medium Length Title for Testing",
+            "This is a medium length description for testing gas usage"
+        );
+        uint256 mediumStringsGas = gasBefore - gasleft();
+
+        // Test long strings
+        vm.prank(depositor);
+        gasBefore = gasleft();
+        bestcrow.createEscrow{value: totalAmount}(
+            address(0),
+            amount,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver,
+            "This is a very long title that tests the gas usage with longer strings in the escrow contract",
+            "This is an extremely long description that contains multiple sentences to test gas usage with long strings. It includes various details about the escrow agreement and tests how the contract handles larger amounts of text data."
+        );
+        uint256 longStringsGas = gasBefore - gasleft();
+
+        console.log("Gas used with short strings:", shortStringsGas);
+        console.log("Gas used with medium strings:", mediumStringsGas);
+        console.log("Gas used with long strings:", longStringsGas);
+
+        // Set reasonable gas limits
+        assertTrue(shortStringsGas < 260000); // Increased for short strings
+        assertTrue(mediumStringsGas < 300000); // Increased for medium strings
+        assertTrue(longStringsGas < 850000); // Increased for long strings
+    }
+
+    /// @notice Tests gas usage for reading escrow details with different string lengths
+    /// @dev Ensures reading escrow details stays efficient
+    function test_gasReadEscrowDetails() public {
+        uint256 amount = 1 ether;
+        uint256 adminFee = (amount * ADMIN_FEE_BASIS_POINTS) / 10000;
+        uint256 totalAmount = amount + adminFee;
+
+        // Create escrow with long strings
+        vm.prank(depositor);
+        uint256 escrowId = bestcrow.createEscrow{value: totalAmount}(
+            address(0),
+            amount,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver,
+            "Long Title for Testing Gas Usage in Reading Escrow Details",
+            "This is a long description used to test the gas consumption when reading escrow details. It contains multiple sentences to simulate a real-world scenario."
+        );
+
+        // Test gas usage for reading escrow details
+        uint256 gasBefore = gasleft();
+        bestcrow.escrowDetails(escrowId);
+        uint256 gasUsed = gasBefore - gasleft();
+
+        console.log("Gas used for reading escrow details:", gasUsed);
+        assertTrue(gasUsed < 30000); // Reading should be relatively cheap
     }
 }

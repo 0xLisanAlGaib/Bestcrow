@@ -55,6 +55,8 @@ contract Bestcrow is ReentrancyGuard, Ownable {
      * @param isCompleted Whether the escrow has been completed successfully
      * @param isEth Whether the escrow is for ETH (true) or ERC20 (false)
      * @param releaseRequested Whether the receiver has requested fund release
+     * @param title Title of the escrow agreement
+     * @param description Detailed description of the escrow agreement
      */
     struct Escrow {
         address depositor; // The address that creates the escrow.
@@ -66,6 +68,8 @@ contract Bestcrow is ReentrancyGuard, Ownable {
         bool isCompleted; // Whether the escrow has been completed.
         bool isEth; // Whether the escrow is for ETH.
         bool releaseRequested; // Whether the release of funds has been requested.
+        string title; // Title of the escrow agreement
+        string description; // Detailed description of the escrow agreement
     }
 
     /**
@@ -115,18 +119,23 @@ contract Bestcrow is ReentrancyGuard, Ownable {
      * @param _amount The amount to be escrowed
      * @param _expiryDate The timestamp when the escrow expires
      * @param _receiver The address that can claim the escrowed funds
+     * @param _title Title of the escrow agreement
+     * @param _description Detailed description of the escrow agreement
      * @return escrowId The unique identifier for the created escrow
      */
     function createEscrow(
         address _token,
         uint256 _amount,
         uint256 _expiryDate,
-        address _receiver
+        address _receiver,
+        string memory _title,
+        string memory _description
     ) external payable returns (uint256) {
         require(_amount > 0, "Invalid amount");
         require(_receiver != address(0), "Invalid receiver");
         require(_receiver != msg.sender, "Receiver cannot be depositor");
         require(_expiryDate > block.timestamp, "Invalid expiry date");
+        require(bytes(_title).length > 0, "Title cannot be empty");
 
         uint256 adminFee = (_amount * ADMIN_FEE_BASIS_POINTS) /
             BASIS_POINTS_DENOMINATOR;
@@ -152,7 +161,9 @@ contract Bestcrow is ReentrancyGuard, Ownable {
             isActive: false,
             isCompleted: false,
             isEth: isEth,
-            releaseRequested: false
+            releaseRequested: false,
+            title: _title,
+            description: _description
         });
 
         emit EscrowCreated(
@@ -319,7 +330,9 @@ contract Bestcrow is ReentrancyGuard, Ownable {
             bool _isActive,
             bool _isCompleted,
             bool _isEth,
-            bool _releaseRequested
+            bool _releaseRequested,
+            string memory _title,
+            string memory _description
         )
     {
         Escrow memory escrow = escrows[_escrowId];
@@ -332,7 +345,9 @@ contract Bestcrow is ReentrancyGuard, Ownable {
             escrow.isActive,
             escrow.isCompleted,
             escrow.isEth,
-            escrow.releaseRequested
+            escrow.releaseRequested,
+            escrow.title,
+            escrow.description
         );
     }
 
