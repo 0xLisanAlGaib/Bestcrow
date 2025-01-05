@@ -94,6 +94,8 @@ contract Bestcrow is ReentrancyGuard, Ownable {
     );
     /// @notice Emitted when an escrow is accepted by the receiver.
     event EscrowAccepted(uint256 indexed escrowId, address indexed receiver);
+    /// @notice Emitted when an escrow is rejected by the receiver
+    event EscrowRejected(uint256 indexed escrowId, address indexed receiver);
     /// @notice Emitted when the release of an escrow is requested.
     event ReleaseRequested(uint256 indexed escrowId);
     /// @notice Emitted when an escrow is completed and funds are released to the receiver.
@@ -211,6 +213,36 @@ contract Bestcrow is ReentrancyGuard, Ownable {
 
         escrow.isActive = true;
         emit EscrowAccepted(_escrowId, msg.sender);
+    }
+
+    /**
+     * @notice Allows the receiver to reject an escrow before expiry
+     * @dev Can only be called by the receiver before expiry and before acceptance
+     * @param _escrowId The ID of the escrow to reject
+     */
+    function rejectEscrow(uint256 _escrowId) external nonReentrant {
+        Escrow storage escrow = escrows[_escrowId];
+        require(msg.sender == escrow.receiver, "Only receiver can reject");
+        require(block.timestamp < escrow.expiryDate, "Escrow expired");
+        require(!escrow.isActive, "Escrow already active");
+        require(!escrow.isCompleted, "Escrow already completed");
+
+        // Update escrow state
+        escrow.isCompleted = true;
+        escrow.releaseRequested = false;
+
+        // Return funds to depositor
+        uint256 adminFee = (escrow.amount * ADMIN_FEE_BASIS_POINTS) /
+            BASIS_POINTS_DENOMINATOR;
+        uint256 totalRefund = escrow.amount + adminFee;
+
+        if (escrow.isEth) {
+            payable(escrow.depositor).transfer(totalRefund);
+        } else {
+            IERC20(escrow.token).safeTransfer(escrow.depositor, totalRefund);
+        }
+
+        emit EscrowRejected(_escrowId, msg.sender);
     }
 
     /**

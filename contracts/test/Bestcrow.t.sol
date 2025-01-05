@@ -28,6 +28,7 @@ contract BestcrowTest is Test {
     );
     event EscrowRefunded(uint256 indexed escrowId, address indexed depositor);
     event FeesWithdrawn(address token, uint256 amount);
+    event EscrowRejected(uint256 indexed escrowId, address indexed receiver);
 
     /// @dev Allow the contract to receive ETH
     receive() external payable {}
@@ -981,5 +982,213 @@ contract BestcrowTest is Test {
         console.log("Title:", title_);
         console.log("Description:", description_);
         console.log("============================\n");
+    }
+
+    /// @notice Test successful rejection of an ETH escrow
+    /// @dev Verifies funds are returned and state is updated correctly
+    function test_rejectEscrowWithEth() public {
+        uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
+        uint256 totalAmount = AMOUNT + adminFee;
+
+        // Create escrow
+        vm.prank(depositor);
+        uint256 escrowId = bestcrow.createEscrow{value: totalAmount}(
+            address(0),
+            AMOUNT,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver,
+            "Test ETH Escrow",
+            "Testing escrow rejection"
+        );
+
+        // Record depositor's balance before rejection
+        uint256 depositorBalanceBefore = depositor.balance;
+
+        // Reject escrow
+        vm.prank(receiver);
+        vm.expectEmit(true, true, false, false);
+        emit EscrowRejected(escrowId, receiver);
+        bestcrow.rejectEscrow(escrowId);
+
+        // Verify escrow state
+        (
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            bool isActive,
+            bool isCompleted,
+            ,
+            bool releaseRequested,
+            ,
+
+        ) = bestcrow.escrowDetails(escrowId);
+
+        assertFalse(isActive, "Escrow should not be active");
+        assertTrue(isCompleted, "Escrow should be completed");
+        assertFalse(releaseRequested, "Release should not be requested");
+
+        // Verify funds returned
+        assertEq(
+            depositor.balance - depositorBalanceBefore,
+            totalAmount,
+            "Full amount should be returned to depositor"
+        );
+    }
+
+    /// @notice Test successful rejection of an ERC20 escrow
+    /// @dev Verifies tokens are returned and state is updated correctly
+    function test_rejectEscrowWithERC20() public {
+        uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
+        uint256 totalAmount = AMOUNT + adminFee;
+
+        // Create escrow
+        vm.prank(depositor);
+        uint256 escrowId = bestcrow.createEscrow(
+            address(token),
+            AMOUNT,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver,
+            "Test ERC20 Escrow",
+            "Testing ERC20 escrow rejection"
+        );
+
+        // Record depositor's token balance before rejection
+        uint256 depositorBalanceBefore = token.balanceOf(depositor);
+
+        // Reject escrow
+        vm.prank(receiver);
+        vm.expectEmit(true, true, false, false);
+        emit EscrowRejected(escrowId, receiver);
+        bestcrow.rejectEscrow(escrowId);
+
+        // Verify escrow state
+        (
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            bool isActive,
+            bool isCompleted,
+            ,
+            bool releaseRequested,
+            ,
+
+        ) = bestcrow.escrowDetails(escrowId);
+
+        assertFalse(isActive, "Escrow should not be active");
+        assertTrue(isCompleted, "Escrow should be completed");
+        assertFalse(releaseRequested, "Release should not be requested");
+
+        // Verify tokens returned
+        assertEq(
+            token.balanceOf(depositor) - depositorBalanceBefore,
+            totalAmount,
+            "Full amount should be returned to depositor"
+        );
+    }
+
+    /// @notice Test failure when non-receiver tries to reject escrow
+    /// @dev Should revert when unauthorized address attempts rejection
+    function testFail_rejectEscrowUnauthorized() public {
+        uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
+        uint256 totalAmount = AMOUNT + adminFee;
+
+        // Create escrow
+        vm.prank(depositor);
+        uint256 escrowId = bestcrow.createEscrow{value: totalAmount}(
+            address(0),
+            AMOUNT,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver,
+            "Unauthorized Reject Test",
+            "Testing unauthorized rejection"
+        );
+
+        // Attempt to reject from unauthorized address
+        vm.prank(depositor); // Wrong address trying to reject
+        bestcrow.rejectEscrow(escrowId);
+    }
+
+    /// @notice Test failure when rejecting an expired escrow
+    /// @dev Should revert when trying to reject after expiry
+    function testFail_rejectExpiredEscrow() public {
+        uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
+        uint256 totalAmount = AMOUNT + adminFee;
+
+        // Create escrow
+        vm.prank(depositor);
+        uint256 escrowId = bestcrow.createEscrow{value: totalAmount}(
+            address(0),
+            AMOUNT,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver,
+            "Expired Reject Test",
+            "Testing expired escrow rejection"
+        );
+
+        // Fast forward past expiry
+        vm.warp(block.timestamp + DAYS_TO_EXPIRY * 1 days + 1);
+
+        // Attempt to reject expired escrow
+        vm.prank(receiver);
+        bestcrow.rejectEscrow(escrowId);
+    }
+
+    /// @notice Test failure when rejecting an already active escrow
+    /// @dev Should revert when trying to reject after acceptance
+    function testFail_rejectActiveEscrow() public {
+        uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
+        uint256 totalAmount = AMOUNT + adminFee;
+
+        // Create escrow
+        vm.prank(depositor);
+        uint256 escrowId = bestcrow.createEscrow{value: totalAmount}(
+            address(0),
+            AMOUNT,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver,
+            "Active Reject Test",
+            "Testing active escrow rejection"
+        );
+
+        // Accept escrow
+        uint256 collateralAmount = (AMOUNT * COLLATERAL_PERCENTAGE) / 100;
+        vm.prank(receiver);
+        bestcrow.acceptEscrow{value: collateralAmount}(escrowId);
+
+        // Attempt to reject active escrow
+        vm.prank(receiver);
+        bestcrow.rejectEscrow(escrowId);
+    }
+
+    /// @notice Test failure when rejecting an already completed escrow
+    /// @dev Should revert when trying to reject completed escrow
+    function testFail_rejectCompletedEscrow() public {
+        uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
+        uint256 totalAmount = AMOUNT + adminFee;
+
+        // Create escrow
+        vm.prank(depositor);
+        uint256 escrowId = bestcrow.createEscrow{value: totalAmount}(
+            address(0),
+            AMOUNT,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver,
+            "Completed Reject Test",
+            "Testing completed escrow rejection"
+        );
+
+        // Reject escrow once
+        vm.prank(receiver);
+        bestcrow.rejectEscrow(escrowId);
+
+        // Attempt to reject again
+        vm.prank(receiver);
+        bestcrow.rejectEscrow(escrowId);
     }
 }
