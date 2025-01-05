@@ -54,7 +54,10 @@ contract BestcrowGasTest is Test {
         vm.prank(depositor);
         uint256 gasBefore = gasleft();
         bestcrow.createEscrow{value: smallAmount + adminFee}(
-            address(0), smallAmount, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver
+            address(0),
+            smallAmount,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver
         );
         uint256 gasUsed = gasBefore - gasleft();
 
@@ -72,7 +75,10 @@ contract BestcrowGasTest is Test {
         vm.prank(depositor);
         uint256 gasBefore = gasleft();
         bestcrow.createEscrow{value: largeAmount + adminFee}(
-            address(0), largeAmount, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver
+            address(0),
+            largeAmount,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver
         );
         uint256 gasUsed = gasBefore - gasleft();
 
@@ -90,14 +96,22 @@ contract BestcrowGasTest is Test {
         vm.prank(depositor);
         uint256 gasBefore = gasleft();
         bestcrow.createEscrow{value: amount + adminFee}(
-            address(0), amount, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver
+            address(0),
+            amount,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver
         );
         uint256 ethGasUsed = gasBefore - gasleft();
 
         // Test ERC20 escrow
         vm.prank(depositor);
         gasBefore = gasleft();
-        bestcrow.createEscrow(address(token), amount, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver);
+        bestcrow.createEscrow(
+            address(token),
+            amount,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver
+        );
         uint256 erc20GasUsed = gasBefore - gasleft();
 
         console.log("Gas used for ETH escrow:", ethGasUsed);
@@ -116,7 +130,10 @@ contract BestcrowGasTest is Test {
             vm.prank(depositor);
             uint256 gasBefore = gasleft();
             bestcrow.createEscrow{value: amount + adminFee}(
-                address(0), amount, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver
+                address(0),
+                amount,
+                block.timestamp + DAYS_TO_EXPIRY * 1 days,
+                receiver
             );
             totalGas += gasBefore - gasleft();
         }
@@ -137,7 +154,10 @@ contract BestcrowGasTest is Test {
         vm.prank(depositor);
         gasBefore = gasleft();
         uint256 escrowId = bestcrow.createEscrow{value: amount + adminFee}(
-            address(0), amount, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver
+            address(0),
+            amount,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver
         );
         uint256 createGas = gasBefore - gasleft();
 
@@ -177,25 +197,42 @@ contract BestcrowGasTest is Test {
     /// @notice Tests the withdrawal of ERC20 fees by the owner
     /// @dev Verifies correct fee calculation and withdrawal
     function test_withdrawFeesERC20() public {
-        // Create escrow with 1 ETH + 0.005 ETH fee
+        uint256 amount = 1 ether;
+        uint256 adminFee = (amount * ADMIN_FEE_BASIS_POINTS) / 10000;
+        uint256 totalAmount = amount + adminFee;
+
+        // First approve the total amount (escrow + fee)
         vm.prank(depositor);
-        bestcrow.createEscrow(address(token), 1 ether, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver);
+        token.approve(address(bestcrow), totalAmount);
+
+        // Create escrow with AMOUNT as the escrow amount
+        vm.prank(depositor);
+        uint256 escrowId = bestcrow.createEscrow(
+            address(token),
+            amount,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver
+        );
 
         // Accept escrow
         vm.prank(receiver);
-        bestcrow.acceptEscrow(0);
+        bestcrow.acceptEscrow(escrowId);
 
         // Complete escrow flow
         vm.prank(receiver);
-        bestcrow.requestRelease(0);
+        bestcrow.requestRelease(escrowId);
+
         vm.prank(depositor);
-        bestcrow.approveRelease(0);
+        bestcrow.approveRelease(escrowId);
 
         // Withdraw fees
-        vm.prank(owner);
+        uint256 gasBefore = gasleft();
+        vm.prank(bestcrow.owner());
         bestcrow.withdrawFees(address(token));
+        uint256 gasUsed = gasBefore - gasleft();
 
-        assertEq(token.balanceOf(owner), 5000000000000000); // 0.005 ETH fee (50 basis points of 1 ETH)
+        console.log("Gas used for withdrawing ERC20 fees:", gasUsed);
+        assertEq(token.balanceOf(bestcrow.owner()), adminFee);
     }
 
     /// @notice Tests gas usage for minimum required operations in an escrow
@@ -210,7 +247,10 @@ contract BestcrowGasTest is Test {
         uint256 gasBefore = gasleft();
 
         uint256 escrowId = bestcrow.createEscrow{value: amount + adminFee}(
-            address(0), amount, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver
+            address(0),
+            amount,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver
         );
 
         uint256 createGas = gasBefore - gasleft();
@@ -255,7 +295,10 @@ contract BestcrowGasTest is Test {
         // Create escrow
         vm.prank(depositor);
         uint256 escrowId = bestcrow.createEscrow{value: amount + adminFee}(
-            address(0), amount, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver
+            address(0),
+            amount,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver
         );
 
         // Fast forward past expiry

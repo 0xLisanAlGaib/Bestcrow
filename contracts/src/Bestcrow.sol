@@ -92,7 +92,11 @@ contract Bestcrow is ReentrancyGuard, Ownable {
     /// @notice Emitted when the release of an escrow is requested.
     event ReleaseRequested(uint256 indexed escrowId);
     /// @notice Emitted when an escrow is completed and funds are released to the receiver.
-    event EscrowCompleted(uint256 indexed escrowId, address indexed receiver, uint256 amount);
+    event EscrowCompleted(
+        uint256 indexed escrowId,
+        address indexed receiver,
+        uint256 amount
+    );
     /// @notice Emitted when an escrow is refunded to the depositor.
     event EscrowRefunded(uint256 indexed escrowId, address indexed depositor);
     /// @notice Emitted when fees are withdrawn by the contract owner.
@@ -113,23 +117,29 @@ contract Bestcrow is ReentrancyGuard, Ownable {
      * @param _receiver The address that can claim the escrowed funds
      * @return escrowId The unique identifier for the created escrow
      */
-    function createEscrow(address _token, uint256 _amount, uint256 _expiryDate, address _receiver)
-        external
-        payable
-        returns (uint256)
-    {
+    function createEscrow(
+        address _token,
+        uint256 _amount,
+        uint256 _expiryDate,
+        address _receiver
+    ) external payable returns (uint256) {
         require(_amount > 0, "Invalid amount");
         require(_receiver != address(0), "Invalid receiver");
         require(_receiver != msg.sender, "Receiver cannot be depositor");
         require(_expiryDate > block.timestamp, "Invalid expiry date");
 
-        uint256 adminFee = (_amount * ADMIN_FEE_BASIS_POINTS) / BASIS_POINTS_DENOMINATOR;
+        uint256 adminFee = (_amount * ADMIN_FEE_BASIS_POINTS) /
+            BASIS_POINTS_DENOMINATOR;
         bool isEth = _token == address(0);
 
         if (isEth) {
             require(msg.value == _amount + adminFee, "Incorrect ETH amount");
         } else {
-            IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount + adminFee);
+            IERC20(_token).safeTransferFrom(
+                msg.sender,
+                address(this),
+                _amount + adminFee
+            );
         }
 
         nextEscrowId++;
@@ -145,7 +155,14 @@ contract Bestcrow is ReentrancyGuard, Ownable {
             releaseRequested: false
         });
 
-        emit EscrowCreated(nextEscrowId, msg.sender, _receiver, _token, _amount, _expiryDate);
+        emit EscrowCreated(
+            nextEscrowId,
+            msg.sender,
+            _receiver,
+            _token,
+            _amount,
+            _expiryDate
+        );
         return nextEscrowId;
     }
 
@@ -158,14 +175,25 @@ contract Bestcrow is ReentrancyGuard, Ownable {
         Escrow storage escrow = escrows[_escrowId];
         require(!escrow.isActive, "Escrow already active");
         require(block.timestamp < escrow.expiryDate, "Escrow expired");
-        require(msg.sender == escrow.receiver, "Only specified receiver can accept");
+        require(
+            msg.sender == escrow.receiver,
+            "Only specified receiver can accept"
+        );
 
-        uint256 collateralAmount = (escrow.amount * COLLATERAL_PERCENTAGE_BASIS_POINTS) / BASIS_POINTS_DENOMINATOR;
+        uint256 collateralAmount = (escrow.amount *
+            COLLATERAL_PERCENTAGE_BASIS_POINTS) / BASIS_POINTS_DENOMINATOR;
 
         if (escrow.isEth) {
-            require(msg.value == collateralAmount, "Incorrect collateral amount");
+            require(
+                msg.value == collateralAmount,
+                "Incorrect collateral amount"
+            );
         } else {
-            IERC20(escrow.token).safeTransferFrom(msg.sender, address(this), collateralAmount);
+            IERC20(escrow.token).safeTransferFrom(
+                msg.sender,
+                address(this),
+                collateralAmount
+            );
         }
 
         escrow.isActive = true;
@@ -179,9 +207,12 @@ contract Bestcrow is ReentrancyGuard, Ownable {
      */
     function requestRelease(uint256 _escrowId) external nonReentrant {
         Escrow storage escrow = escrows[_escrowId];
-        require(escrow.isActive, "Escrow not active");
         require(!escrow.isCompleted, "Escrow already completed");
-        require(msg.sender == escrow.receiver, "Only receiver can request release");
+        require(escrow.isActive, "Escrow not active");
+        require(
+            msg.sender == escrow.receiver,
+            "Only receiver can request release"
+        );
         require(!escrow.releaseRequested, "Release already requested");
 
         escrow.releaseRequested = true;
@@ -197,11 +228,16 @@ contract Bestcrow is ReentrancyGuard, Ownable {
         Escrow storage escrow = escrows[_escrowId];
         require(escrow.isActive, "Escrow not active");
         require(!escrow.isCompleted, "Escrow already completed");
-        require(msg.sender == escrow.depositor, "Only depositor can approve release");
+        require(
+            msg.sender == escrow.depositor,
+            "Only depositor can approve release"
+        );
         require(escrow.releaseRequested, "Release not requested");
 
-        uint256 adminFee = (escrow.amount * ADMIN_FEE_BASIS_POINTS) / BASIS_POINTS_DENOMINATOR;
-        uint256 collateralAmount = (escrow.amount * COLLATERAL_PERCENTAGE_BASIS_POINTS) / BASIS_POINTS_DENOMINATOR;
+        uint256 adminFee = (escrow.amount * ADMIN_FEE_BASIS_POINTS) /
+            BASIS_POINTS_DENOMINATOR;
+        uint256 collateralAmount = (escrow.amount *
+            COLLATERAL_PERCENTAGE_BASIS_POINTS) / BASIS_POINTS_DENOMINATOR;
         uint256 totalToReceiver = escrow.amount + collateralAmount;
 
         if (escrow.isEth) {
@@ -212,7 +248,10 @@ contract Bestcrow is ReentrancyGuard, Ownable {
             IERC20(escrow.token).safeTransfer(escrow.receiver, totalToReceiver);
         }
 
+        // Update escrow state
+        escrow.isActive = false;
         escrow.isCompleted = true;
+
         emit EscrowCompleted(_escrowId, escrow.receiver, totalToReceiver);
     }
 
@@ -223,12 +262,16 @@ contract Bestcrow is ReentrancyGuard, Ownable {
      */
     function refundExpiredEscrow(uint256 _escrowId) external nonReentrant {
         Escrow storage escrow = escrows[_escrowId];
-        require(!escrow.isActive && !escrow.isCompleted, "Escrow is active or completed");
+        require(
+            !escrow.isActive && !escrow.isCompleted,
+            "Escrow is active or completed"
+        );
         require(msg.sender == escrow.depositor, "Only depositor can refund");
         require(block.timestamp >= escrow.expiryDate, "Escrow not expired");
         require(!escrow.releaseRequested, "Escrow was previously accepted");
 
-        uint256 adminFee = (escrow.amount * ADMIN_FEE_BASIS_POINTS) / BASIS_POINTS_DENOMINATOR;
+        uint256 adminFee = (escrow.amount * ADMIN_FEE_BASIS_POINTS) /
+            BASIS_POINTS_DENOMINATOR;
         uint256 totalRefund = escrow.amount + adminFee;
 
         if (escrow.isEth) {
@@ -262,7 +305,9 @@ contract Bestcrow is ReentrancyGuard, Ownable {
         }
     }
 
-    function escrowDetails(uint256 _escrowId)
+    function escrowDetails(
+        uint256 _escrowId
+    )
         public
         view
         returns (
@@ -291,7 +336,9 @@ contract Bestcrow is ReentrancyGuard, Ownable {
         );
     }
 
-    function getEscrowDepositor(uint256 _escrowId) public view returns (address) {
+    function getEscrowDepositor(
+        uint256 _escrowId
+    ) public view returns (address) {
         return escrows[_escrowId].depositor;
     }
 

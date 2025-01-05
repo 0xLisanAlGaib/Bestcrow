@@ -21,7 +21,11 @@ contract BestcrowTest is Test {
     );
     event EscrowAccepted(uint256 indexed escrowId, address indexed receiver);
     event ReleaseRequested(uint256 indexed escrowId);
-    event EscrowCompleted(uint256 indexed escrowId, address indexed receiver, uint256 amount);
+    event EscrowCompleted(
+        uint256 indexed escrowId,
+        address indexed receiver,
+        uint256 amount
+    );
     event EscrowRefunded(uint256 indexed escrowId, address indexed depositor);
     event FeesWithdrawn(address token, uint256 amount);
 
@@ -67,7 +71,10 @@ contract BestcrowTest is Test {
 
         vm.prank(depositor);
         uint256 escrowId = bestcrow.createEscrow{value: totalAmount}(
-            address(0), AMOUNT, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver
+            address(0),
+            AMOUNT,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver
         );
 
         (
@@ -102,7 +109,10 @@ contract BestcrowTest is Test {
 
         vm.prank(depositor);
         uint256 escrowId = bestcrow.createEscrow{value: totalAmount}(
-            address(0), AMOUNT, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver
+            address(0),
+            AMOUNT,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver
         );
 
         // Calculate collateral
@@ -111,7 +121,7 @@ contract BestcrowTest is Test {
         vm.prank(receiver);
         bestcrow.acceptEscrow{value: collateralAmount}(escrowId);
 
-        (,,,,, bool isActive,,,) = bestcrow.escrows(escrowId);
+        (, , , , , bool isActive, , , ) = bestcrow.escrows(escrowId);
         assertTrue(isActive);
     }
 
@@ -124,7 +134,10 @@ contract BestcrowTest is Test {
 
         vm.prank(depositor);
         uint256 escrowId = bestcrow.createEscrow{value: totalAmount}(
-            address(0), AMOUNT, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver
+            address(0),
+            AMOUNT,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver
         );
 
         uint256 collateralAmount = (AMOUNT * COLLATERAL_PERCENTAGE) / 100;
@@ -154,7 +167,10 @@ contract BestcrowTest is Test {
 
         vm.prank(depositor);
         uint256 escrowId = bestcrow.createEscrow{value: totalAmount}(
-            address(0), AMOUNT, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver
+            address(0),
+            AMOUNT,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver
         );
 
         // Fast forward past expiry
@@ -177,7 +193,10 @@ contract BestcrowTest is Test {
 
         vm.prank(depositor);
         uint256 escrowId = bestcrow.createEscrow{value: totalAmount}(
-            address(0), AMOUNT, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver
+            address(0),
+            AMOUNT,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver
         );
 
         uint256 collateralAmount = (AMOUNT * COLLATERAL_PERCENTAGE) / 100;
@@ -236,7 +255,10 @@ contract BestcrowTest is Test {
         bestcrow.approveRelease(escrowId);
 
         uint256 receiverBalanceAfter = token.balanceOf(receiver);
-        console.log("Amount received:", receiverBalanceAfter - receiverBalanceBefore);
+        console.log(
+            "Amount received:",
+            receiverBalanceAfter - receiverBalanceBefore
+        );
 
         assertEq(
             receiverBalanceAfter - receiverBalanceBefore,
@@ -251,8 +273,12 @@ contract BestcrowTest is Test {
         uint256 totalAmount = AMOUNT + adminFee;
 
         vm.prank(depositor);
-        uint256 escrowId =
-            bestcrow.createEscrow(address(token), AMOUNT, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver);
+        uint256 escrowId = bestcrow.createEscrow(
+            address(token),
+            AMOUNT,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver
+        );
 
         vm.warp(block.timestamp + DAYS_TO_EXPIRY * 1 days + 1);
 
@@ -261,7 +287,10 @@ contract BestcrowTest is Test {
         vm.prank(depositor);
         bestcrow.refundExpiredEscrow(escrowId);
 
-        assertEq(token.balanceOf(depositor) - depositorBalanceBefore, totalAmount);
+        assertEq(
+            token.balanceOf(depositor) - depositorBalanceBefore,
+            totalAmount
+        );
     }
 
     /// @notice Test withdrawal of accumulated ERC20 fees
@@ -271,24 +300,35 @@ contract BestcrowTest is Test {
         uint256 adminFee = (amount * ADMIN_FEE_BASIS_POINTS) / 10000;
         uint256 totalAmount = amount + adminFee;
 
+        // First approve the total amount (escrow + fee)
         vm.prank(depositor);
-        bestcrow.createEscrow(address(token), totalAmount, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver);
+        token.approve(address(bestcrow), totalAmount);
+
+        // Create escrow with AMOUNT as the escrow amount
+        vm.prank(depositor);
+        uint256 escrowId = bestcrow.createEscrow(
+            address(token),
+            amount,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver
+        );
 
         // Accept escrow
         vm.prank(receiver);
-        bestcrow.acceptEscrow(0);
+        bestcrow.acceptEscrow(escrowId);
 
         // Complete escrow flow
         vm.prank(receiver);
-        bestcrow.requestRelease(0);
+        bestcrow.requestRelease(escrowId);
+
         vm.prank(depositor);
-        bestcrow.approveRelease(0);
+        bestcrow.approveRelease(escrowId);
 
         // Withdraw fees
         vm.prank(bestcrow.owner());
         bestcrow.withdrawFees(address(token));
 
-        assertEq(token.balanceOf(bestcrow.owner()), adminFee); // Use the calculated adminFee
+        assertEq(token.balanceOf(bestcrow.owner()), adminFee);
     }
 
     // CreateEscrow failure cases
@@ -312,7 +352,12 @@ contract BestcrowTest is Test {
     /// @dev Should revert when escrow amount is zero
     function testFail_createEscrowWithZeroAmount() public {
         vm.prank(depositor);
-        bestcrow.createEscrow{value: 0}(address(0), 0, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver);
+        bestcrow.createEscrow{value: 0}(
+            address(0),
+            0,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver
+        );
     }
 
     /// @notice Test failure when creating escrow with past expiry date
@@ -322,7 +367,12 @@ contract BestcrowTest is Test {
         uint256 totalAmount = AMOUNT + adminFee;
 
         vm.prank(depositor);
-        bestcrow.createEscrow{value: totalAmount}(address(0), AMOUNT, block.timestamp - 1, receiver);
+        bestcrow.createEscrow{value: totalAmount}(
+            address(0),
+            AMOUNT,
+            block.timestamp - 1,
+            receiver
+        );
     }
 
     /// @notice Test failure when creating ETH escrow with incorrect amount
@@ -330,7 +380,11 @@ contract BestcrowTest is Test {
     function testFail_createEscrowWithIncorrectEthAmount() public {
         vm.prank(depositor);
         bestcrow.createEscrow{value: AMOUNT}( // Missing admin fee
-        address(0), AMOUNT, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver);
+            address(0),
+            AMOUNT,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver
+        );
     }
 
     /// @notice Test failure when creating escrow with self as receiver
@@ -341,7 +395,10 @@ contract BestcrowTest is Test {
 
         vm.prank(depositor);
         bestcrow.createEscrow{value: totalAmount}(
-            address(0), AMOUNT, block.timestamp + DAYS_TO_EXPIRY * 1 days, depositor
+            address(0),
+            AMOUNT,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            depositor
         );
     }
 
@@ -355,7 +412,10 @@ contract BestcrowTest is Test {
 
         vm.prank(depositor);
         uint256 escrowId = bestcrow.createEscrow{value: totalAmount}(
-            address(0), AMOUNT, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver
+            address(0),
+            AMOUNT,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver
         );
 
         uint256 collateralAmount = (AMOUNT * COLLATERAL_PERCENTAGE) / 100;
@@ -374,7 +434,10 @@ contract BestcrowTest is Test {
 
         vm.prank(depositor);
         uint256 escrowId = bestcrow.createEscrow{value: totalAmount}(
-            address(0), AMOUNT, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver
+            address(0),
+            AMOUNT,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver
         );
 
         vm.warp(block.timestamp + DAYS_TO_EXPIRY * 1 days + 1);
@@ -392,7 +455,10 @@ contract BestcrowTest is Test {
 
         vm.prank(depositor);
         uint256 escrowId = bestcrow.createEscrow{value: totalAmount}(
-            address(0), AMOUNT, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver
+            address(0),
+            AMOUNT,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver
         );
 
         uint256 collateralAmount = (AMOUNT * COLLATERAL_PERCENTAGE) / 100;
@@ -411,7 +477,10 @@ contract BestcrowTest is Test {
 
         vm.prank(depositor);
         uint256 escrowId = bestcrow.createEscrow{value: totalAmount}(
-            address(0), AMOUNT, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver
+            address(0),
+            AMOUNT,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver
         );
 
         uint256 collateralAmount = (AMOUNT * COLLATERAL_PERCENTAGE) / 100;
@@ -429,7 +498,10 @@ contract BestcrowTest is Test {
 
         vm.prank(depositor);
         uint256 escrowId = bestcrow.createEscrow{value: totalAmount}(
-            address(0), AMOUNT, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver
+            address(0),
+            AMOUNT,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver
         );
 
         vm.prank(receiver);
@@ -444,7 +516,10 @@ contract BestcrowTest is Test {
 
         vm.prank(depositor);
         uint256 escrowId = bestcrow.createEscrow{value: totalAmount}(
-            address(0), AMOUNT, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver
+            address(0),
+            AMOUNT,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver
         );
 
         vm.prank(depositor); // Wrong person requesting
@@ -460,7 +535,10 @@ contract BestcrowTest is Test {
 
         vm.prank(depositor);
         uint256 escrowId = bestcrow.createEscrow{value: totalAmount}(
-            address(0), AMOUNT, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver
+            address(0),
+            AMOUNT,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver
         );
 
         uint256 collateralAmount = (AMOUNT * COLLATERAL_PERCENTAGE) / 100;
@@ -484,7 +562,10 @@ contract BestcrowTest is Test {
 
         vm.prank(depositor);
         uint256 escrowId = bestcrow.createEscrow{value: totalAmount}(
-            address(0), AMOUNT, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver
+            address(0),
+            AMOUNT,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver
         );
 
         uint256 collateralAmount = (AMOUNT * COLLATERAL_PERCENTAGE) / 100;
@@ -504,7 +585,10 @@ contract BestcrowTest is Test {
 
         vm.prank(depositor);
         uint256 escrowId = bestcrow.createEscrow{value: totalAmount}(
-            address(0), AMOUNT, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver
+            address(0),
+            AMOUNT,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver
         );
 
         uint256 collateralAmount = (AMOUNT * COLLATERAL_PERCENTAGE) / 100;
@@ -545,7 +629,10 @@ contract BestcrowTest is Test {
 
         vm.prank(depositor);
         uint256 escrowId = bestcrow.createEscrow{value: totalAmount}(
-            address(0), AMOUNT, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver
+            address(0),
+            AMOUNT,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver
         );
 
         // Warp to just before expiry
@@ -555,7 +642,7 @@ contract BestcrowTest is Test {
         vm.prank(receiver);
         bestcrow.acceptEscrow{value: collateralAmount}(escrowId);
 
-        (,,,,, bool isActive,,,) = bestcrow.escrows(escrowId);
+        (, , , , , bool isActive, , , ) = bestcrow.escrows(escrowId);
         assertTrue(isActive);
     }
 
@@ -567,7 +654,10 @@ contract BestcrowTest is Test {
 
         vm.prank(depositor);
         uint256 escrowId = bestcrow.createEscrow{value: totalAmount}(
-            address(0), AMOUNT, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver
+            address(0),
+            AMOUNT,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver
         );
 
         // Warp to exact expiry
@@ -589,10 +679,13 @@ contract BestcrowTest is Test {
 
         vm.prank(depositor);
         uint256 escrowId = bestcrow.createEscrow{value: totalAmount}(
-            address(0), minAmount, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver
+            address(0),
+            minAmount,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver
         );
 
-        (,,, uint256 amount,,,,,) = bestcrow.escrows(escrowId);
+        (, , , uint256 amount, , , , , ) = bestcrow.escrows(escrowId);
         assertEq(amount, minAmount);
     }
 
@@ -607,10 +700,13 @@ contract BestcrowTest is Test {
 
         vm.prank(depositor);
         uint256 escrowId = bestcrow.createEscrow{value: totalAmount}(
-            address(0), largeAmount, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver
+            address(0),
+            largeAmount,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver
         );
 
-        (,,, uint256 amount,,,,,) = bestcrow.escrows(escrowId);
+        (, , , uint256 amount, , , , , ) = bestcrow.escrows(escrowId);
         assertEq(amount, largeAmount);
     }
 
@@ -625,7 +721,10 @@ contract BestcrowTest is Test {
         vm.prank(depositor);
         uint256 gasBefore = gasleft();
         bestcrow.createEscrow{value: totalAmount}(
-            address(0), AMOUNT, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver
+            address(0),
+            AMOUNT,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver
         );
         uint256 gasUsed = gasBefore - gasleft();
         assertTrue(gasUsed < 200000); // Increased threshold to a more realistic value
@@ -639,7 +738,10 @@ contract BestcrowTest is Test {
 
         vm.prank(depositor);
         uint256 escrowId = bestcrow.createEscrow{value: totalAmount}(
-            address(0), AMOUNT, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver
+            address(0),
+            AMOUNT,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver
         );
 
         uint256 collateralAmount = (AMOUNT * COLLATERAL_PERCENTAGE) / 100;
@@ -659,7 +761,10 @@ contract BestcrowTest is Test {
 
         vm.prank(depositor);
         uint256 escrowId = bestcrow.createEscrow{value: totalAmount}(
-            address(0), AMOUNT, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver
+            address(0),
+            AMOUNT,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver
         );
 
         uint256 collateralAmount = (AMOUNT * COLLATERAL_PERCENTAGE) / 100;
@@ -694,7 +799,10 @@ contract BestcrowTest is Test {
 
         vm.prank(depositor);
         uint256 escrowId = bestcrow.createEscrow{value: totalAmount}(
-            address(0), AMOUNT, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver
+            address(0),
+            AMOUNT,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver
         );
 
         uint256 collateralAmount = (AMOUNT * COLLATERAL_PERCENTAGE) / 100;
@@ -708,7 +816,7 @@ contract BestcrowTest is Test {
         bestcrow.approveRelease(escrowId);
 
         // Try to request release again
-        vm.expectRevert("Escrow not active");
+        vm.expectRevert("Escrow already completed");
         vm.prank(receiver);
         bestcrow.requestRelease(escrowId);
     }
@@ -722,20 +830,26 @@ contract BestcrowTest is Test {
         // Create first escrow
         vm.prank(depositor);
         uint256 escrowId1 = bestcrow.createEscrow{value: totalAmount}(
-            address(0), AMOUNT, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver
+            address(0),
+            AMOUNT,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver
         );
 
         // Create second escrow
         vm.prank(depositor);
         uint256 escrowId2 = bestcrow.createEscrow{value: totalAmount}(
-            address(0), AMOUNT, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver
+            address(0),
+            AMOUNT,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver
         );
 
         assertEq(escrowId2, escrowId1 + 1);
 
         // Verify both escrows are independent
-        (address depositor1,,,,,,,,) = bestcrow.escrows(escrowId1);
-        (address depositor2,,,,,,,,) = bestcrow.escrows(escrowId2);
+        (address depositor1, , , , , , , , ) = bestcrow.escrows(escrowId1);
+        (address depositor2, , , , , , , , ) = bestcrow.escrows(escrowId2);
 
         assertEq(depositor1, depositor);
         assertEq(depositor2, depositor);
@@ -750,7 +864,10 @@ contract BestcrowTest is Test {
 
         vm.prank(depositor);
         uint256 escrowId = bestcrow.createEscrow{value: totalAmount}(
-            address(0), AMOUNT, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver
+            address(0),
+            AMOUNT,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver
         );
 
         // Get escrow details
@@ -872,7 +989,10 @@ contract BestcrowTest is Test {
 
         vm.prank(depositor);
         uint256 escrowId = bestcrow.createEscrow{value: totalAmount}(
-            address(0), AMOUNT, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver
+            address(0),
+            AMOUNT,
+            block.timestamp + DAYS_TO_EXPIRY * 1 days,
+            receiver
         );
 
         logEscrowState("After creation", escrowId);
@@ -884,11 +1004,42 @@ contract BestcrowTest is Test {
 
         logEscrowState("After acceptance", escrowId);
 
+        // Verify state after acceptance
+        (
+            ,
+            ,
+            ,
+            ,
+            ,
+            bool isActiveAfterAccept,
+            bool isCompletedAfterAccept,
+            ,
+
+        ) = bestcrow.escrowDetails(escrowId);
+        assertTrue(isActiveAfterAccept);
+        assertFalse(isCompletedAfterAccept);
+
         // Request release
         vm.prank(receiver);
         bestcrow.requestRelease(escrowId);
 
         logEscrowState("After release request", escrowId);
+
+        // Verify state after release request
+        (
+            ,
+            ,
+            ,
+            ,
+            ,
+            bool isActiveAfterRequest,
+            bool isCompletedAfterRequest,
+            ,
+            bool releaseRequested
+        ) = bestcrow.escrowDetails(escrowId);
+        assertTrue(isActiveAfterRequest);
+        assertFalse(isCompletedAfterRequest);
+        assertTrue(releaseRequested);
 
         // Complete escrow
         vm.prank(depositor);
@@ -897,15 +1048,22 @@ contract BestcrowTest is Test {
         logEscrowState("After completion", escrowId);
 
         // Get final state
-        (,,,,, bool _isActiveFinal, bool _isCompletedFinal,,) = bestcrow.escrowDetails(escrowId);
+        (, , , , , bool isActiveFinal, bool isCompletedFinal, , ) = bestcrow
+            .escrowDetails(escrowId);
 
         // Verify final states
-        assertFalse(_isActiveFinal);
-        assertTrue(_isCompletedFinal);
+        assertFalse(
+            isActiveFinal,
+            "Escrow should not be active after completion"
+        );
+        assertTrue(isCompletedFinal, "Escrow should be marked as completed");
     }
 
     // Helper function to log escrow state
-    function logEscrowState(string memory stage, uint256 escrowId) internal view {
+    function logEscrowState(
+        string memory stage,
+        uint256 escrowId
+    ) internal view {
         (
             address _depositor,
             address _receiver,
