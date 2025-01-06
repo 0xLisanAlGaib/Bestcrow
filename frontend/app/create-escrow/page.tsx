@@ -33,6 +33,15 @@ const styles = `
   input[type=number] {
     -moz-appearance: textfield;
   }
+  
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px rgb(55 65 81) inset !important;
+    -webkit-text-fill-color: white !important;
+    transition: background-color 5000s ease-in-out 0s;
+  }
 `;
 
 interface CustomDatePickerProps {
@@ -204,7 +213,7 @@ export default function CreateEscrow() {
                     value={formState.receiver}
                     onChange={handleInputChange}
                     placeholder="0x..."
-                    className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                    className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:bg-gray-700"
                   />
                 </div>
                 <div className="space-y-2">

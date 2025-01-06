@@ -281,7 +281,7 @@ export default function EscrowPool() {
                     <TableHead className="text-blue-300">Title</TableHead>
                     <TableHead className="text-blue-300">Depositor</TableHead>
                     <TableHead className="text-blue-300">Amount</TableHead>
-                    <TableHead className="text-blue-300">Status</TableHead>
+                    <TableHead className="text-blue-300 text-center">Status</TableHead>
                     <TableHead className="text-blue-300">Type</TableHead>
                     <TableHead className="text-blue-300">Receiver</TableHead>
                     <TableHead className="text-blue-300">Created Date</TableHead>
@@ -341,7 +341,7 @@ export default function EscrowPool() {
                         <TableCell className="text-blue-100">
                           {escrow.amount} {escrow.isEth ? "ETH" : "Tokens"}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-center">
                           <Badge className={`${getStatusColor(getEscrowStatus(escrow))} text-white`}>
                             {getEscrowStatus(escrow).replace("_", " ")}
                           </Badge>

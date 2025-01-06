@@ -39,6 +39,7 @@ export default function EscrowDetails() {
   const [loading, setLoading] = useState(true);
   const [escrowId, setEscrowId] = useState<string>("0");
   const [escrowDetails, setEscrowDetails] = useState<any>(null);
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
 
   useEffect(() => {
     const loadEscrowDetails = async () => {
@@ -151,7 +152,7 @@ export default function EscrowDetails() {
         completed: true,
       },
       {
-        title: "Awaiting Acceptance",
+        title: "Escrow Accepted",
         description: `Waiting for ${truncateAddress(receiver)} to accept and provide collateral`,
         completed: isActive || isCompleted,
       },
@@ -186,14 +187,21 @@ export default function EscrowDetails() {
 
   const handleAcceptEscrow = async () => {
     try {
+      if (!escrowDetails) return;
+      setPendingAction("accept");
+      const collateralAmount = (BigInt(escrowDetails[3]) * BigInt(5000)) / BigInt(10000); // 50% collateral
+
       await writeContract({
         address: ESCROW_CONTRACT_ADDRESS,
         abi: ESCROW_CONTRACT_ABI,
         functionName: "acceptEscrow",
         args: [escrowId],
+        value: escrowDetails[8] ? collateralAmount : BigInt(0), // Only send value if it's an ETH escrow
       });
     } catch (error) {
       console.error("Error accepting escrow:", error);
+    } finally {
+      setPendingAction(null);
     }
   };
 
@@ -208,6 +216,30 @@ export default function EscrowDetails() {
     } catch (error) {
       console.error("Error approving release:", error);
     }
+  };
+
+  const handleRejectEscrow = async () => {
+    try {
+      setPendingAction("reject");
+      await writeContract({
+        address: ESCROW_CONTRACT_ADDRESS,
+        abi: ESCROW_CONTRACT_ABI,
+        functionName: "rejectEscrow",
+        args: [escrowId],
+      });
+    } catch (error) {
+      console.error("Error rejecting escrow:", error);
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
+  const isParticipant = (details: any) => {
+    if (!walletAddress || !details) return false;
+    return (
+      walletAddress.toLowerCase() === details[0]?.toLowerCase() ||
+      walletAddress.toLowerCase() === details[1]?.toLowerCase()
+    );
   };
 
   const renderBottomButtons = () => {
@@ -247,17 +279,40 @@ export default function EscrowDetails() {
       if (isReceiver) {
         return (
           <div className="mt-8 flex justify-center space-x-4">
-            <Button
-              variant="default"
-              className="bg-green-600 hover:bg-green-700"
-              onClick={handleAcceptEscrow}
-              disabled={isPending}
-            >
-              {isPending ? "Accepting..." : "Accept"}
-            </Button>
-            <Button variant="destructive" className="bg-red-600 hover:bg-red-700">
-              Decline
-            </Button>
+            {(!pendingAction || pendingAction === "accept") && (
+              <Button
+                variant="default"
+                className="bg-green-600 hover:bg-green-700 min-w-[100px]"
+                onClick={handleAcceptEscrow}
+                disabled={isPending}
+              >
+                {isPending ? (
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                    Accepting...
+                  </div>
+                ) : (
+                  "Accept"
+                )}
+              </Button>
+            )}
+            {(!pendingAction || pendingAction === "reject") && (
+              <Button
+                variant="destructive"
+                className="bg-red-600 hover:bg-red-700 min-w-[100px]"
+                onClick={handleRejectEscrow}
+                disabled={isPending}
+              >
+                {isPending ? (
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                    Rejecting...
+                  </div>
+                ) : (
+                  "Reject"
+                )}
+              </Button>
+            )}
           </div>
         );
       }
@@ -268,11 +323,18 @@ export default function EscrowDetails() {
         <div className="mt-8 flex justify-center">
           <Button
             variant="default"
-            className="bg-blue-600 hover:bg-blue-700"
+            className="bg-purple-600 hover:bg-purple-700 min-w-[140px]"
             onClick={handleRequestRelease}
             disabled={isPending}
           >
-            {isPending ? "Requesting..." : "Request Release"}
+            {isPending ? (
+              <div className="flex items-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                Requesting...
+              </div>
+            ) : (
+              "Request Release"
+            )}
           </Button>
         </div>
       );
@@ -283,11 +345,18 @@ export default function EscrowDetails() {
         <div className="mt-8 flex justify-center">
           <Button
             variant="default"
-            className="bg-purple-600 hover:bg-purple-700"
+            className="bg-blue-600 hover:bg-blue-700 min-w-[140px]"
             onClick={handleApproveRelease}
             disabled={isPending}
           >
-            {isPending ? "Approving..." : "Approve Release"}
+            {isPending ? (
+              <div className="flex items-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                Approving...
+              </div>
+            ) : (
+              "Approve Release"
+            )}
           </Button>
         </div>
       );
@@ -307,6 +376,21 @@ export default function EscrowDetails() {
             <Skeleton className="h-40 bg-gray-700" />
             <Skeleton className="h-40 bg-gray-700" />
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (escrowDetails && !isParticipant(escrowDetails)) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-8 pt-24">
+        <div className="max-w-4xl mx-auto text-center">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+            <div className="bg-red-500/20 text-red-300 py-6 px-8 rounded-xl inline-flex items-center">
+              <XCircle className="w-6 h-6 mr-3" />
+              You are not part of this escrow
+            </div>
+          </motion.div>
         </div>
       </div>
     );
