@@ -117,6 +117,19 @@ export default function EscrowDetails() {
     }
   };
 
+  const formatDate = (timestamp: number) => {
+    return (
+      new Date(Number(timestamp) * 1000).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "UTC",
+      }) + " UTC"
+    );
+  };
+
   const truncateAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
@@ -234,6 +247,22 @@ export default function EscrowDetails() {
     }
   };
 
+  const handleRefundEscrow = async () => {
+    try {
+      setPendingAction("refund");
+      await writeContract({
+        address: ESCROW_CONTRACT_ADDRESS,
+        abi: ESCROW_CONTRACT_ABI,
+        functionName: "refundExpiredEscrow",
+        args: [escrowId],
+      });
+    } catch (error) {
+      console.error("Error refunding escrow:", error);
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
   const isParticipant = (details: any) => {
     if (!walletAddress || !details) return false;
     return (
@@ -248,6 +277,8 @@ export default function EscrowDetails() {
     const status = getEscrowStatus(escrowDetails);
     const isDepositor = walletAddress?.toLowerCase() === escrowDetails[0]?.toLowerCase();
     const isReceiver = walletAddress?.toLowerCase() === escrowDetails[1]?.toLowerCase();
+    const currentTimestamp = Math.floor(Date.now() / 1000);
+    const isExpired = currentTimestamp > Number(escrowDetails[4]);
 
     if (status === "expired") {
       return (
@@ -267,6 +298,28 @@ export default function EscrowDetails() {
             <CheckCircle2 className="w-5 h-5 mr-2" />
             The escrow has been completed!
           </div>
+        </div>
+      );
+    }
+
+    if (isExpired && isDepositor && !status.includes("completed")) {
+      return (
+        <div className="mt-8 flex justify-center">
+          <Button
+            variant="default"
+            className="bg-orange-600 hover:bg-orange-700 min-w-[100px]"
+            onClick={handleRefundEscrow}
+            disabled={isPending}
+          >
+            {isPending ? (
+              <div className="flex items-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                Refunding...
+              </div>
+            ) : (
+              "Refund"
+            )}
+          </Button>
         </div>
       );
     }
@@ -439,27 +492,11 @@ export default function EscrowDetails() {
               </p>
               <p className="text-white">
                 <Calendar className="inline mr-2 text-white" />
-                Created:{" "}
-                {escrowDetails !== null
-                  ? new Date(Number(escrowDetails[5]) * 1000).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                      timeZone: "UTC",
-                    }) + " UTC"
-                  : "Loading..."}
+                Created: {escrowDetails !== null ? formatDate(escrowDetails[5]) : "Loading..."}
               </p>
               <p className="text-white">
                 <Calendar className="inline mr-2 text-white" />
-                Expires:{" "}
-                {escrowDetails !== null
-                  ? new Date(Number(escrowDetails[4]) * 1000).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                      timeZone: "UTC",
-                    }) + " UTC"
-                  : "NA"}
+                Expires: {escrowDetails !== null ? formatDate(escrowDetails[4]) : "NA"}
               </p>
             </CardContent>
           </Card>
