@@ -82,6 +82,14 @@ export default function SearchEscrow() {
             string
           ];
 
+          // Only include escrows where the connected wallet is involved
+          if (
+            data[0].toLowerCase() !== walletAddress?.toLowerCase() && // depositor
+            data[1].toLowerCase() !== walletAddress?.toLowerCase() // receiver
+          ) {
+            return null;
+          }
+
           return {
             id: String(index + 1),
             title: data[10],
