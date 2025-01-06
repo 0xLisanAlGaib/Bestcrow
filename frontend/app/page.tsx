@@ -85,7 +85,7 @@ export default function Home() {
                   How much does it cost to escrow?
                 </AccordionTrigger>
                 <AccordionContent className="text-gray-300 mt-2 p-4 bg-[#15304f] rounded-lg">
-                  The cost of using Bestcrow includes a small platform fee and the necessary gas fees for blockchain transactions. The exact amount can vary depending on network congestion and the complexity of the escrow contract. We strive to keep our fees competitive and transparent.
+                  The cost of using Bestcrow includes a small platform fee (0.5% of the escrow amount) and the necessary gas fees for blockchain transactions. The exact amount can vary depending on network congestion and the complexity of the escrow contract. We strive to keep our fees competitive and transparent.
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="item-4" className="border-b-0">
@@ -93,7 +93,7 @@ export default function Home() {
                   What happens if either the depositor or receiver is trying to rug the other?
                 </AccordionTrigger>
                 <AccordionContent className="text-gray-300 mt-2 p-4 bg-[#15304f] rounded-lg">
-                  Bestcrow's smart contracts are designed to prevent rug pulls. Funds are locked in the contract and can only be released when both parties agree or when predefined conditions are met. In case of a dispute, we have a resolution mechanism in place to ensure fair treatment for both parties.
+                  Bestcrow's smart contracts are designed to prevent rug pulls. Funds are locked in the contract and can only be released when both parties agree. Failure to achieve this agreement will keep the escrowed amount and collateral in the contract.
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
@@ -118,7 +118,7 @@ export default function Home() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-300 group-hover:text-white transition-colors duration-300">
-                    Be as clear and detailed as possible with the receiver about the terms and conditions of the escrow. The clearer the communication, the less likely it is for either party to be dissatisfied with the outcome.
+                    Be as clear and detailed as possible with the receiver about the terms and conditions of the escrow. The clearer the communication, the less likely it is for either party to be dissatisfied with the outcome. The receiver should only accept the escrow if they are confident in the terms and conditions.
                   </p>
                 </CardContent>
               </Card>
@@ -133,7 +133,7 @@ export default function Home() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-300 group-hover:text-white transition-colors duration-300">
-                    Always verify the identity and reputation of the other party before entering into an escrow agreement. Use trusted platforms and check for reviews or ratings if available.
+                    Always verify the identity and reputation of the other party before entering into an escrow agreement. Try to have a grasp of what the receiver has been able to deliver in the past, or on the other hand, if the depositor has been able to fulfill their part on previous agreements.
                   </p>
                 </CardContent>
               </Card>
@@ -148,7 +148,7 @@ export default function Home() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-300 group-hover:text-white transition-colors duration-300">
-                    Establish realistic timeframes for the completion of the transaction. Consider potential delays and set the expiry date accordingly to avoid unnecessary disputes.
+                    Establish realistic timeframes for the completion of the transaction. Consider potential delays and set the expiry date accordingly to avoid unnecessary disputes. The receiver should only accept the escrow if they are confident in the timeframes.
                   </p>
                 </CardContent>
               </Card>

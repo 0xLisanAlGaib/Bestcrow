@@ -86,6 +86,8 @@ export default function CreateEscrow() {
     const expiryDate = parseUnits(Math.floor(formState.expiryDate.getTime() / 1000).toString(), 0);
     const receiver = formState.receiver;
     const msgValue = amount + (amount * ESCROW_FEE) / DENOMINATOR;
+    const title = formState.title;
+    const description = formState.description;
 
     console.log(token, amount, expiryDate, receiver, msgValue);
 
@@ -94,7 +96,7 @@ export default function CreateEscrow() {
         abi: ESCROW_CONTRACT_ABI,
         address: ESCROW_CONTRACT_ADDRESS,
         functionName: "createEscrow",
-        args: [token, amount, expiryDate, receiver],
+        args: [token, amount, expiryDate, receiver, title, description],
         value: msgValue,
       });
     } catch (error) {

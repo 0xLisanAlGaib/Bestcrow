@@ -14,17 +14,17 @@ const timelineItems: TimelineItem[] = [
   {
     icon: <FileText className="h-6 w-6 text-blue-400" />,
     title: "Create Contract",
-    description: "Connect your MetaMask wallet and fill out the escrow details, including receiver address, asset, amount, and expiry date."
+    description: "Connect your wallet and fill out the escrow details, including the title, description, receiver address, asset, amount, and expiry date. The funds will be locked in the smart contract."
   },
   {
     icon: <Send className="h-6 w-6 text-green-400" />,
-    title: "Deploy Escrow",
-    description: "Review the contract details and deploy it to the blockchain. The funds will be locked in the smart contract."
+    title: "Accept Escrow",
+    description: "The receiver connects their wallet, reviews the contract in detail, and accepts it by depositing the required collateral."
   },
   {
     icon: <CheckCircle className="h-6 w-6 text-yellow-400" />,
-    title: "Accept Contract",
-    description: "The receiver connects their wallet, reviews the contract, and accepts it. Once accepted, the funds are released to the receiver."
+    title: "Release Funds",
+    description: "Once the receiver delivers on what is agreed and the depositor is satisfied, the funds are released to the receiver."
   }
 ]
 

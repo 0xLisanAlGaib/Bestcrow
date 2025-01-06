@@ -51,6 +51,8 @@ escrow-e2e:; make escrow-create && sleep 5 && make escrow-accept && sleep 5 && m
 
 escrow-e2e-active:; make escrow-create && sleep 5 && make escrow-accept
 
+escrow-e2e-reject:; make escrow-create && sleep 5 && make escrow-reject 
+
 escrow-e2e-request:; make escrow-create && sleep 5 && make escrow-accept && sleep 5 && make escrow-request
 
 
