@@ -13,7 +13,7 @@ verify:; forge verify-contract \
     --etherscan-api-key ${ETHERSCAN_API_KEY} \
     --root contracts
 
-escrow-view:; cast call --rpc-url=${HOLESKY_RPC_URL} 0x7Ebd1370491e6F546841bD02ed0772a0c4DAC3B6 "escrowDetails(uint256)(address,address,address,uint256,uint256,bool,bool,bool,bool)" 4
+escrow-view:; cast call --rpc-url=${HOLESKY_RPC_URL} 0x7Ebd1370491e6F546841bD02ed0772a0c4DAC3B6 "escrowDetails(uint256)(address,address,address,uint256,uint256,bool,bool,bool,bool)" 1
 
 escrow-next-id:; cast call --rpc-url=${HOLESKY_RPC_URL} 0x7Ebd1370491e6F546841bD02ed0772a0c4DAC3B6 "nextEscrowId()(uint256)"
 
