@@ -104,12 +104,23 @@ export default function EscrowPool() {
     setLoading(false);
   }, [escrowResults]);
 
+  const formatDate = (timestamp: number) => {
+    return (
+      new Date(timestamp * 1000).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        timeZone: "UTC",
+      }) + " UTC"
+    );
+  };
+
   const getEscrowStatus = (escrow: Escrow) => {
-    if (!escrow.isActive && !escrow.releaseRequested && escrow.isCompleted) return "expired";
-    if (!escrow.isActive && !escrow.isCompleted && !escrow.releaseRequested) return "pending";
-    if (escrow.isActive && !escrow.isCompleted && !escrow.releaseRequested) return "active";
-    if (escrow.isActive && !escrow.isCompleted && escrow.releaseRequested) return "release_requested";
     if (escrow.isCompleted && escrow.releaseRequested) return "completed";
+    if (escrow.isCompleted && !escrow.releaseRequested) return "expired";
+    if (!escrow.isActive && !escrow.isCompleted) return "pending";
+    if (escrow.isActive && !escrow.releaseRequested) return "active";
+    if (escrow.releaseRequested) return "release_requested";
     return "unknown";
   };
 
@@ -153,160 +164,91 @@ export default function EscrowPool() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-8 pt-24">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-        <h1 className="text-4xl font-bold mb-8 text-center">Escrow Pool</h1>
+    <div className="min-h-screen bg-gradient-to-br from-[#0a192f] to-[#112240] text-white p-4 pt-24">
+      <div className="container mx-auto relative">
+        <div className="absolute top-[-50px] left-[-50px] w-64 h-64 bg-blue-500/20 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
+        <div className="absolute top-[-50px] right-[-50px] w-64 h-64 bg-blue-600/20 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
+        <div className="absolute bottom-[-50px] left-[50%] w-64 h-64 bg-blue-700/20 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
 
-        <div className="flex flex-col md:flex-row justify-between items-center mb-6 space-y-4 md:space-y-0 md:space-x-4">
-          <div className="relative w-full md:w-1/3">
-            <Input
-              type="text"
-              placeholder="Search escrows..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-gray-800 border-gray-700 text-white"
-            />
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+        <h1 className="text-4xl md:text-5xl font-bold text-center mb-8 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-blue-600">
+          Escrow Pool
+        </h1>
+
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+          <div className="flex flex-col md:flex-row justify-between items-center mb-6 space-y-4 md:space-y-0 md:space-x-4">
+            <div className="relative w-full md:w-1/3">
+              <Input
+                type="text"
+                placeholder="Search escrows..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 bg-gray-800 border-gray-700 text-white"
+              />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="bg-gray-800 border-gray-700 text-white">
+                  <Filter className="mr-2 h-4 w-4" />
+                  Filter by Status
+                  <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="bg-gray-800 border-gray-700 text-white">
+                <DropdownMenuItem onClick={() => setFilterStatus("all")}>All</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setFilterStatus("active")}>Active</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setFilterStatus("completed")}>Completed</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setFilterStatus("pending")}>Pending</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setFilterStatus("expired")}>Expired</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setFilterStatus("release_requested")}>
+                  Release Requested
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="bg-gray-800 border-gray-700 text-white">
-                <Filter className="mr-2 h-4 w-4" />
-                Filter by Status
-                <ChevronDown className="ml-2 h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="bg-gray-800 border-gray-700 text-white">
-              <DropdownMenuItem onClick={() => setFilterStatus("all")}>All</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterStatus("active")}>Active</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterStatus("completed")}>Completed</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterStatus("pending")}>Pending</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterStatus("expired")}>Expired</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterStatus("release_requested")}>
-                Release Requested
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
 
-        {/* Desktop view */}
-        <div className="hidden md:block overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="text-white">Escrow ID</TableHead>
-                <TableHead className="text-white">Title</TableHead>
-                <TableHead className="text-white">Depositor</TableHead>
-                <TableHead className="text-white">Amount</TableHead>
-                <TableHead className="text-white">Status</TableHead>
-                <TableHead className="text-white">Type</TableHead>
-                <TableHead className="text-white">Receiver</TableHead>
-                <TableHead className="text-white">Expiration Date</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
+          {/* Desktop view */}
+          <div className="hidden md:block overflow-x-auto">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-white">
-                    Loading escrows...
-                  </TableCell>
+                  <TableHead className="text-white">Escrow ID</TableHead>
+                  <TableHead className="text-white">Title</TableHead>
+                  <TableHead className="text-white">Depositor</TableHead>
+                  <TableHead className="text-white">Amount</TableHead>
+                  <TableHead className="text-white">Status</TableHead>
+                  <TableHead className="text-white">Type</TableHead>
+                  <TableHead className="text-white">Receiver</TableHead>
+                  <TableHead className="text-white">Created Date</TableHead>
+                  <TableHead className="text-white">Expiration Date</TableHead>
                 </TableRow>
-              ) : filteredEscrows.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center text-white">
-                    No escrows found
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredEscrows.map((escrow) => (
-                  <TableRow key={escrow.id} className="border-b border-gray-700">
-                    <TableCell className="font-medium text-white">
-                      {isParticipant(escrow) ? (
-                        <Link href={`/escrow/${escrow.id}`} className="hover:text-blue-400 transition-colors">
-                          {escrow.id}
-                        </Link>
-                      ) : (
-                        <span>{escrow.id}</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-white">
-                      {isParticipant(escrow) ? (
-                        <Link href={`/escrow/${escrow.id}`} className="hover:text-blue-400 transition-colors">
-                          {escrow.title || "Untitled"}
-                        </Link>
-                      ) : (
-                        <span>{escrow.title || "Untitled"}</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-white">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger className="underline decoration-dotted">
-                            {truncateAddress(escrow.depositor)}
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>{escrow.depositor}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </TableCell>
-                    <TableCell className="text-white">
-                      {escrow.amount} {escrow.isEth ? "ETH" : "Tokens"}
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={`${getStatusColor(getEscrowStatus(escrow))} text-white`}>
-                        {getEscrowStatus(escrow).replace("_", " ")}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-white">Standard</TableCell>
-                    <TableCell className="text-white">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger className="underline decoration-dotted">
-                            {truncateAddress(escrow.receiver)}
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>{escrow.receiver}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </TableCell>
-                    <TableCell className="text-white">
-                      {new Date(escrow.expiryDate * 1000).toLocaleDateString()}
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center text-white">
+                      Loading escrows...
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-
-        {/* Mobile view */}
-        <div className="md:hidden space-y-4">
-          {loading ? (
-            <Card className="bg-gray-800 border-gray-700">
-              <CardContent className="py-4 text-center">Loading escrows...</CardContent>
-            </Card>
-          ) : filteredEscrows.length === 0 ? (
-            <Card className="bg-gray-800 border-gray-700">
-              <CardContent className="py-4 text-center">No escrows found</CardContent>
-            </Card>
-          ) : (
-            filteredEscrows.map((escrow) => (
-              <Card key={escrow.id} className="bg-gray-800 border-gray-700">
-                <CardHeader>
-                  <CardTitle className="text-white flex justify-between items-center">
-                    <div>
-                      <div className="text-white">
+                ) : filteredEscrows.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center text-white">
+                      No escrows found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredEscrows.map((escrow) => (
+                    <TableRow key={escrow.id} className="border-b border-gray-700">
+                      <TableCell className="font-medium text-white">
                         {isParticipant(escrow) ? (
                           <Link href={`/escrow/${escrow.id}`} className="hover:text-blue-400 transition-colors">
-                            Escrow #{escrow.id}
+                            {escrow.id}
                           </Link>
                         ) : (
-                          <span>Escrow #{escrow.id}</span>
+                          <span>{escrow.id}</span>
                         )}
-                      </div>
-                      <div className="text-sm text-gray-400 mt-1">
+                      </TableCell>
+                      <TableCell className="text-white">
                         {isParticipant(escrow) ? (
                           <Link href={`/escrow/${escrow.id}`} className="hover:text-blue-400 transition-colors">
                             {escrow.title || "Untitled"}
@@ -314,36 +256,112 @@ export default function EscrowPool() {
                         ) : (
                           <span>{escrow.title || "Untitled"}</span>
                         )}
-                      </div>
-                    </div>
-                    <Badge className={`${getStatusColor(getEscrowStatus(escrow))} text-white`}>
-                      {getEscrowStatus(escrow).replace("_", " ")}
-                    </Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-400">Depositor: {truncateAddress(escrow.depositor)}</p>
-                  <p className="text-sm text-gray-400">
-                    Amount: {escrow.amount} {escrow.isEth ? "ETH" : "Tokens"}
-                  </p>
-                  <p className="text-sm text-gray-400">Type: Standard</p>
-                  <p className="text-sm text-gray-400">Receiver: {truncateAddress(escrow.receiver)}</p>
-                  <p className="text-sm text-gray-400">
-                    Expires: {new Date(escrow.expiryDate * 1000).toLocaleDateString()}
-                  </p>
-                  <div className="mt-4">
-                    <Link href={`/escrow/${escrow.id}`}>
-                      <Button variant="outline" className="w-full">
-                        View Details
-                      </Button>
-                    </Link>
-                  </div>
-                </CardContent>
+                      </TableCell>
+                      <TableCell className="text-white">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger className="underline decoration-dotted">
+                              {truncateAddress(escrow.depositor)}
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{escrow.depositor}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </TableCell>
+                      <TableCell className="text-white">
+                        {escrow.amount} {escrow.isEth ? "ETH" : "Tokens"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={`${getStatusColor(getEscrowStatus(escrow))} text-white`}>
+                          {getEscrowStatus(escrow).replace("_", " ")}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-white">Standard</TableCell>
+                      <TableCell className="text-white">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger className="underline decoration-dotted">
+                              {truncateAddress(escrow.receiver)}
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{escrow.receiver}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </TableCell>
+                      <TableCell className="text-white">{formatDate(escrow.createdAt)}</TableCell>
+                      <TableCell className="text-white">{formatDate(escrow.expiryDate)}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Mobile view */}
+          <div className="md:hidden space-y-4">
+            {loading ? (
+              <Card className="bg-gray-800 border-gray-700">
+                <CardContent className="py-4 text-center">Loading escrows...</CardContent>
               </Card>
-            ))
-          )}
-        </div>
-      </motion.div>
+            ) : filteredEscrows.length === 0 ? (
+              <Card className="bg-gray-800 border-gray-700">
+                <CardContent className="py-4 text-center">No escrows found</CardContent>
+              </Card>
+            ) : (
+              filteredEscrows.map((escrow) => (
+                <Card key={escrow.id} className="bg-gray-800 border-gray-700">
+                  <CardHeader>
+                    <CardTitle className="text-white flex justify-between items-center">
+                      <div>
+                        <div className="text-white">
+                          {isParticipant(escrow) ? (
+                            <Link href={`/escrow/${escrow.id}`} className="hover:text-blue-400 transition-colors">
+                              Escrow #{escrow.id}
+                            </Link>
+                          ) : (
+                            <span>Escrow #{escrow.id}</span>
+                          )}
+                        </div>
+                        <div className="text-sm text-gray-400 mt-1">
+                          {isParticipant(escrow) ? (
+                            <Link href={`/escrow/${escrow.id}`} className="hover:text-blue-400 transition-colors">
+                              {escrow.title || "Untitled"}
+                            </Link>
+                          ) : (
+                            <span>{escrow.title || "Untitled"}</span>
+                          )}
+                        </div>
+                      </div>
+                      <Badge className={`${getStatusColor(getEscrowStatus(escrow))} text-white`}>
+                        {getEscrowStatus(escrow).replace("_", " ")}
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-gray-400">Depositor: {truncateAddress(escrow.depositor)}</p>
+                    <p className="text-sm text-gray-400">
+                      Amount: {escrow.amount} {escrow.isEth ? "ETH" : "Tokens"}
+                    </p>
+                    <p className="text-sm text-gray-400">Type: Standard</p>
+                    <p className="text-sm text-gray-400">Receiver: {truncateAddress(escrow.receiver)}</p>
+                    <p className="text-sm text-gray-400">Created: {formatDate(escrow.createdAt)}</p>
+                    <p className="text-sm text-gray-400">Expires: {formatDate(escrow.expiryDate)}</p>
+                    <div className="mt-4">
+                      <Link href={`/escrow/${escrow.id}`}>
+                        <Button variant="outline" className="w-full">
+                          View Details
+                        </Button>
+                      </Link>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        </motion.div>
+      </div>
     </div>
   );
 }

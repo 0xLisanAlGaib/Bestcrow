@@ -26,32 +26,8 @@ import { parseUnits, formatUnits } from "viem";
 
 // Mock function to fetch escrow details
 const fetchEscrowDetails = async (id: string) => {
-  // Simulating API call
-  // await new Promise((resolve) => setTimeout(resolve, 1000));
   return {
     id: id,
-    contractAddress: "0x1234567890123456789012345678901234567890",
-    title: "Web3 Project Escrow",
-    description: "Escrow for a decentralized application development project",
-    amount: "5 ETH",
-    status: "approved",
-    type: "standard",
-    depositor: "0xabcdef1234567890abcdef1234567890abcdef12",
-    receiver: "0x2345678901234567890123456789012345678901",
-    creationDate: "2023-06-01",
-    expirationDate: "2023-12-31",
-    steps: [
-      { title: "Escrow Creation", description: "Depositor created escrow", completed: true },
-      { title: "Escrow Accepted", description: "Receiver accepted escrow", completed: true },
-      { title: "Payment Requested", description: "Receiver requested payment", completed: false },
-      { title: "Payment Approved", description: "Depositor approved release of payment", completed: false },
-      {
-        title: "Payment Delivered",
-        description: "Receiver obtained payment",
-        completed: false,
-        transactionAddress: "",
-      },
-    ],
   };
 };
 
@@ -93,9 +69,9 @@ export default function EscrowDetails() {
   const getEscrowStatus = (details: any) => {
     if (!details) return "unknown";
 
-    const isActive = details[5];
-    const isCompleted = details[6];
-    const releaseRequested = details[8];
+    const isActive = details[6];
+    const isCompleted = details[7];
+    const releaseRequested = details[9];
 
     if (!isActive && !releaseRequested && isCompleted) return "expired";
     if (!isActive && !isCompleted && !releaseRequested) return "pending";
@@ -147,9 +123,9 @@ export default function EscrowDetails() {
   const getTimelineSteps = (details: any) => {
     if (!details) return [];
 
-    const isActive = details[5];
-    const isCompleted = details[6];
-    const releaseRequested = details[8];
+    const isActive = details[6];
+    const isCompleted = details[7];
+    const releaseRequested = details[9];
     const depositor = details[0];
     const receiver = details[1];
 
@@ -241,6 +217,17 @@ export default function EscrowDetails() {
     const isDepositor = walletAddress?.toLowerCase() === escrowDetails[0]?.toLowerCase();
     const isReceiver = walletAddress?.toLowerCase() === escrowDetails[1]?.toLowerCase();
 
+    if (status === "expired") {
+      return (
+        <div className="mt-8 text-center">
+          <div className="bg-red-500/20 text-red-300 py-3 px-4 rounded-lg inline-flex items-center">
+            <XCircle className="w-5 h-5 mr-2" />
+            The escrow is no longer available
+          </div>
+        </div>
+      );
+    }
+
     if (status === "completed") {
       return (
         <div className="mt-8 text-center">
@@ -306,14 +293,7 @@ export default function EscrowDetails() {
       );
     }
 
-    return (
-      <div className="mt-8 flex justify-center space-x-4">
-        <Button variant="default" className="bg-green-600 hover:bg-green-700">
-          Approve
-        </Button>
-        <Button variant="destructive">Dispute</Button>
-      </div>
-    );
+    return null;
   };
 
   if (loading) {
@@ -340,7 +320,9 @@ export default function EscrowDetails() {
         transition={{ duration: 0.5 }}
         className="max-w-4xl mx-auto"
       >
-        <h1 className="text-4xl font-bold mb-8 text-center text-white">{escrow.title}</h1>
+        <h1 className="text-4xl font-bold mb-8 text-center text-white">
+          {escrowDetails ? escrowDetails[10] : "Loading..."}
+        </h1>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card className="bg-gray-800/50 backdrop-blur-lg border-gray-700">
@@ -373,7 +355,15 @@ export default function EscrowDetails() {
               </p>
               <p className="text-white">
                 <Calendar className="inline mr-2 text-white" />
-                Created: {escrow.creationDate}
+                Created:{" "}
+                {escrowDetails !== null
+                  ? new Date(Number(escrowDetails[5]) * 1000).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                      timeZone: "UTC",
+                    }) + " UTC"
+                  : "Loading..."}
               </p>
               <p className="text-white">
                 <Calendar className="inline mr-2 text-white" />
@@ -420,7 +410,7 @@ export default function EscrowDetails() {
               <CardTitle className="text-white">Description</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-white">{escrow.description}</p>
+              <p className="text-white">{escrowDetails ? escrowDetails[11] : "Loading..."}</p>
             </CardContent>
           </Card>
         </div>

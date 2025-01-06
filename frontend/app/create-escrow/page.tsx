@@ -130,175 +130,193 @@ export default function CreateEscrow() {
   }, [isConfirmed, isConfirming, hash]);
 
   const getLabelColor = (fieldName: string) => {
+    if (fieldName === "expiryDate") {
+      return formState.expiryDate > new Date() ? "text-orange-300" : "text-white";
+    }
     return formState[fieldName as keyof typeof formState] ? "text-orange-300" : "text-white";
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#0a192f] to-[#112240] text-white p-4 pt-24">
       <style jsx global>
         {styles}
       </style>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-2xl"
-      >
-        <Card className="bg-gray-800/50 backdrop-blur-lg border-gray-700 shadow-xl">
-          <CardHeader className="text-center">
-            <CardTitle className="text-3xl font-bold text-white">Create New Escrow</CardTitle>
-            <CardDescription className="text-gray-400">Set up a secure escrow for your transaction</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="title" className={`${getLabelColor("title")} transition-colors duration-300`}>
-                  Escrow Title
-                </Label>
-                <Input
-                  id="title"
-                  name="title"
-                  value={formState.title}
-                  onChange={handleInputChange}
-                  placeholder="Enter a title for your escrow"
-                  className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label
-                  htmlFor="description"
-                  className={`${getLabelColor("description")} transition-colors duration-300`}
-                >
-                  Description
-                </Label>
-                <Textarea
-                  id="description"
-                  name="description"
-                  value={formState.description}
-                  onChange={handleInputChange}
-                  placeholder="Describe the terms of your escrow"
-                  className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="receiver" className={`${getLabelColor("receiver")} transition-colors duration-300`}>
-                  Receiver Address
-                </Label>
-                <Input
-                  id="receiver"
-                  name="receiver"
-                  value={formState.receiver}
-                  onChange={handleInputChange}
-                  placeholder="0x..."
-                  className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="asset" className="text-white">
-                  Escrow Asset
-                </Label>
-                <Select onValueChange={setEscrowAsset} defaultValue={escrowAsset}>
-                  <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
-                    <SelectValue placeholder="Select asset" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-gray-700 border-gray-600 text-white">
-                    <SelectItem value="ETH">ETH</SelectItem>
-                    {/* <SelectItem value="ERC20">ERC20</SelectItem> */}
-                  </SelectContent>
-                </Select>
-              </div>
-              {escrowAsset === "ERC20" && (
+      <div className="container mx-auto relative">
+        <div className="absolute top-[-50px] left-[-50px] w-64 h-64 bg-blue-500/20 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
+        <div className="absolute top-[-50px] right-[-50px] w-64 h-64 bg-blue-600/20 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
+        <div className="absolute bottom-[-50px] left-[50%] w-64 h-64 bg-blue-700/20 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
+
+        <h1 className="text-4xl md:text-5xl font-bold text-center mb-8 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-blue-600">
+          Create Escrow
+        </h1>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="w-full max-w-2xl mx-auto"
+        >
+          <Card className="bg-[#1a365d]/50 backdrop-blur-lg border-0 shadow-xl rounded-2xl overflow-hidden">
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl font-bold text-blue-300">New Escrow Agreement</CardTitle>
+              <CardDescription className="text-blue-200/70">
+                Set up a secure escrow for your transaction
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">
-                  <Label
-                    htmlFor="tokenAddress"
-                    className={`${getLabelColor("tokenAddress")} transition-colors duration-300`}
-                  >
-                    Token Address
+                  <Label htmlFor="title" className={`${getLabelColor("title")} transition-colors duration-300`}>
+                    Escrow Title
                   </Label>
                   <Input
-                    id="tokenAddress"
-                    name="tokenAddress"
-                    value={formState.tokenAddress}
+                    id="title"
+                    name="title"
+                    value={formState.title}
+                    onChange={handleInputChange}
+                    placeholder="Enter a title for your escrow"
+                    className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="description"
+                    className={`${getLabelColor("description")} transition-colors duration-300`}
+                  >
+                    Description
+                  </Label>
+                  <Textarea
+                    id="description"
+                    name="description"
+                    value={formState.description}
+                    onChange={handleInputChange}
+                    placeholder="Describe the terms of your escrow"
+                    className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="receiver" className={`${getLabelColor("receiver")} transition-colors duration-300`}>
+                    Receiver Address
+                  </Label>
+                  <Input
+                    id="receiver"
+                    name="receiver"
+                    value={formState.receiver}
                     onChange={handleInputChange}
                     placeholder="0x..."
                     className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
                   />
                 </div>
-              )}
-              <div className="space-y-2">
-                <Label htmlFor="amount" className={`${getLabelColor("amount")} transition-colors duration-300`}>
-                  Amount
-                </Label>
-                <Input
-                  id="amount"
-                  name="amount"
-                  value={formState.amount}
-                  onChange={handleInputChange}
-                  type="number"
-                  min="0"
-                  step="0.000001"
-                  placeholder="0.00"
-                  className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="expiryDate" className="text-white">
-                  Expiry Date
-                </Label>
-                <div className="relative">
-                  <CustomDatePicker
-                    selected={formState.expiryDate}
-                    onChange={(date: Date | null) =>
-                      setFormState((prev) => ({ ...prev, expiryDate: date || new Date() }))
-                    }
+                <div className="space-y-2">
+                  <Label htmlFor="asset" className="text-white">
+                    Escrow Asset
+                  </Label>
+                  <Select onValueChange={setEscrowAsset} defaultValue={escrowAsset}>
+                    <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                      <SelectValue placeholder="Select asset" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-700 border-gray-600 text-white">
+                      <SelectItem value="ETH">ETH</SelectItem>
+                      {/* <SelectItem value="ERC20">ERC20</SelectItem> */}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {escrowAsset === "ERC20" && (
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="tokenAddress"
+                      className={`${getLabelColor("tokenAddress")} transition-colors duration-300`}
+                    >
+                      Token Address
+                    </Label>
+                    <Input
+                      id="tokenAddress"
+                      name="tokenAddress"
+                      value={formState.tokenAddress}
+                      onChange={handleInputChange}
+                      placeholder="0x..."
+                      className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                    />
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <Label htmlFor="amount" className={`${getLabelColor("amount")} transition-colors duration-300`}>
+                    Amount
+                  </Label>
+                  <Input
+                    id="amount"
+                    name="amount"
+                    value={formState.amount}
+                    onChange={handleInputChange}
+                    type="number"
+                    min="0"
+                    step="0.000001"
+                    placeholder="0.00"
+                    className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
                   />
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-white">Escrow Type</Label>
-                <RadioGroup value={escrowType} onValueChange={setEscrowType} className="flex space-x-4">
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="standard" id="standard" className="border-gray-600 text-blue-500" />
-                    <Label htmlFor="standard" className="text-white">
-                      Standard
-                    </Label>
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="expiryDate"
+                    className={`${getLabelColor("expiryDate")} transition-colors duration-300`}
+                  >
+                    Expiry Date
+                  </Label>
+                  <div className="relative">
+                    <CustomDatePicker
+                      selected={formState.expiryDate}
+                      onChange={(date: Date | null) =>
+                        setFormState((prev) => ({ ...prev, expiryDate: date || new Date() }))
+                      }
+                    />
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="milestone" id="milestone" className="border-gray-600 text-blue-500" />
-                    <Label htmlFor="milestone" className="text-white">
-                      Milestone-based
-                    </Label>
-                  </div>
-                </RadioGroup>
-                {escrowType === "milestone" && (
-                  <p className="text-red-500 text-sm mt-2">
-                    Milestone-based escrows are not available yet. Please choose the standard option.
-                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-white">Escrow Type</Label>
+                  <RadioGroup value={escrowType} onValueChange={setEscrowType} className="flex space-x-4">
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="standard" id="standard" className="border-gray-600 text-blue-500" />
+                      <Label htmlFor="standard" className="text-white">
+                        Standard
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="milestone" id="milestone" className="border-gray-600 text-blue-500" />
+                      <Label htmlFor="milestone" className="text-white">
+                        Milestone-based
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                  {escrowType === "milestone" && (
+                    <p className="text-red-500 text-sm mt-2">
+                      Milestone-based escrows are not available yet. Please choose the standard option.
+                    </p>
+                  )}
+                </div>
+              </form>
+            </CardContent>
+            <CardFooter>
+              <Button
+                onClick={handleSubmit}
+                disabled={isSubmitting || isPending || isConfirming || escrowType === "milestone"}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition duration-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting || isPending || isConfirming ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {isConfirming ? "Confirming Transaction..." : "Creating Escrow..."}
+                  </>
+                ) : (
+                  <>
+                    Create Escrow
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </>
                 )}
-              </div>
-            </form>
-          </CardContent>
-          <CardFooter>
-            <Button
-              onClick={handleSubmit}
-              disabled={isSubmitting || isPending || isConfirming || escrowType === "milestone"}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition duration-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSubmitting || isPending || isConfirming ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {isConfirming ? "Confirming Transaction..." : "Creating Escrow..."}
-                </>
-              ) : (
-                <>
-                  Create Escrow
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </>
-              )}
-            </Button>
-          </CardFooter>
-        </Card>
-      </motion.div>
+              </Button>
+            </CardFooter>
+          </Card>
+        </motion.div>
+      </div>
       <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
