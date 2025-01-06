@@ -15,6 +15,7 @@ Bestcrow is a trustless escrow service that facilitates secure transactions betw
 | 0.1      | 0x3d6e4b427867ee08F6a2995d50de4c8D86fAA595    | Holesky
 | 0.2      | 0x8c2acF6Fb82305f19fbB3F60a53810b17df9BC9B    | Holesky
 | 0.3      | 0xB133765B8beCaf440bAD4f4534a6Dc4BbE87234A    | Holesky
+| 0.4      | 0x77C385fD50164Fde71A6c29732F9F7763AAC6753    | Holesky
 
 
 ## Features
@@ -43,7 +44,11 @@ Bestcrow is a trustless escrow service that facilitates secure transactions betw
    - Receiver must accept by providing 50% collateral
    - Must be done before expiry date
 
-3. **Completing the Transaction**
+3. **Rejecting an Escrow**
+   - Receiver can reject an escrow before expiry date
+   - If rejected, depositor can reclaim funds
+
+4. **Completing the Transaction**
    - Receiver requests release of funds
    - Depositor approves the release
    - Both original amount and collateral are sent to receiver
@@ -56,6 +61,7 @@ Bestcrow is a trustless escrow service that facilitates secure transactions betw
 
 - `createEscrow`: Create a new escrow agreement
 - `acceptEscrow`: Accept and collateralize an escrow
+- `rejectEscrow`: Reject an escrow before expiry
 - `requestRelease`: Request release of escrowed funds
 - `approveRelease`: Approve and execute fund release
 - `refundExpiredEscrow`: Reclaim funds from expired escrows

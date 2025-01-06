@@ -9,6 +9,7 @@ out/
 
 # Docs
 docs/
+.escrow-id
 
 # Dotenv file
 .env

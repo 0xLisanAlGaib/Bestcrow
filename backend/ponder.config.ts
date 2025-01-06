@@ -14,8 +14,8 @@ export default createConfig({
     Bestcrow: {
       network: "holesky",
       abi: BestcrowAbi,
-      address: "0xB133765B8beCaf440bAD4f4534a6Dc4BbE87234A",
-      startBlock: 2865350,
+      address: "0x77C385fD50164Fde71A6c29732F9F7763AAC6753",
+      startBlock: 3081000,
     },
   },
 });

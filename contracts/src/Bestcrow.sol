@@ -90,7 +90,10 @@ contract Bestcrow is ReentrancyGuard, Ownable {
         address indexed receiver,
         address token,
         uint256 amount,
-        uint256 expiryDate
+        uint256 expiryDate,
+        uint256 createdAt,
+        string title,
+        string description
     );
     /// @notice Emitted when an escrow is accepted by the receiver.
     event EscrowAccepted(uint256 indexed escrowId, address indexed receiver);
@@ -176,7 +179,10 @@ contract Bestcrow is ReentrancyGuard, Ownable {
             _receiver,
             _token,
             _amount,
-            _expiryDate
+            _expiryDate,
+            block.timestamp,
+            _title,
+            _description
         );
         return nextEscrowId;
     }

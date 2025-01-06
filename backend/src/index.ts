@@ -1,21 +1,24 @@
 import { ponder } from "@/generated";
-import { EscrowCreatedEvents, EscrowAcceptedEvents, EscrowCompletedEvents, ReleaseRequestedEvents, EscrowRefundedEvents, FeesWithdrawnEvents } from "../ponder.schema";
+import { EscrowCreatedEvents, EscrowAcceptedEvents, EscrowCompletedEvents, ReleaseRequestedEvents, EscrowRefundedEvents, FeesWithdrawnEvents, EscrowRejectedEvents } from "../ponder.schema";
 import { formatUnits } from 'viem'
 
 
 
 ponder.on("Bestcrow:EscrowCreated", async ({ event, context }) => {
     await context.db.insert(EscrowCreatedEvents)
-    .values({
+      .values({
         id: event.transaction.hash,
         escrowId: Number(event.args.escrowId),
         depositor: event.args.depositor,
-        receiver: event.args.receiver,
+        receiver: event.args.receiver,         
         token: event.args.token,
         amount: formatUnits(event.args.amount, 0),
-        expiryDate: BigInt(event.args.expiryDate).toString(),
-    })
-    .onConflictDoNothing();
+        expiryDate: BigInt(event.args.expiryDate),
+        createdAt: BigInt(event.block.timestamp),
+        title: event.args.title,
+        description: event.args.description
+      })
+      .onConflictDoNothing();
 });
 
 
@@ -25,6 +28,16 @@ ponder.on("Bestcrow:EscrowAccepted", async ({ event, context }) => {
       id: event.transaction.hash,
       escrowId: Number(event.args.escrowId),
       receiver: event.args.receiver,
+    })
+    .onConflictDoNothing();
+});
+
+ponder.on("Bestcrow:EscrowRejected", async ({ event, context }) => {
+  await context.db.insert(EscrowRejectedEvents)
+    .values({
+      id: event.transaction.hash,
+      escrowId: Number(event.args.escrowId),
+      receiver: event.args.receiver
     })
     .onConflictDoNothing();
 });
@@ -73,3 +86,4 @@ ponder.on("Bestcrow:FeesWithdrawn", async ({ event, context }) => {
     )
     .onConflictDoNothing();
 });
+
