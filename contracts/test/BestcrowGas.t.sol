@@ -408,19 +408,34 @@ contract BestcrowGasTest is Test {
 
         // Test gas usage for reading escrow details
         uint256 gasBefore = gasleft();
+
+        // Declare variables for destructuring
+        address depositor_;
+        address receiver_;
+        address token_;
+        uint256 amount_;
+        uint256 expiryDate_;
+        uint256 _createdAt;
+        bool isActive_;
+        bool isCompleted_;
+        bool isEth_;
+        bool releaseRequested_;
+        string memory title_;
+        string memory description_;
+
         (
-            address _depositor,
-            address _receiver,
-            address _token,
-            uint256 _amount,
-            uint256 _expiryDate,
-            uint256 _createdAt,
-            bool _isActive,
-            bool _isCompleted,
-            bool _isEth,
-            bool _releaseRequested,
-            string memory _title,
-            string memory _description
+            depositor_,
+            receiver_,
+            token_,
+            amount_,
+            expiryDate_,
+            _createdAt,
+            isActive_,
+            isCompleted_,
+            isEth_,
+            releaseRequested_,
+            title_,
+            description_
         ) = bestcrow.escrowDetails(escrowId);
         uint256 gasUsed = gasBefore - gasleft();
 

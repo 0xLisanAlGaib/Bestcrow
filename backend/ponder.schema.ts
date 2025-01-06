@@ -1,4 +1,4 @@
-import { onchainTable } from "@ponder/core";
+import { onchainTable } from "ponder";
 
 export const EscrowCreatedEvents = onchainTable("EscrowCreatedEvents", (t) => ({
   id: t.text().primaryKey(),

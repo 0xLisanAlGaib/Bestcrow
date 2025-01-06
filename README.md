@@ -16,6 +16,7 @@ Bestcrow is a trustless escrow service that facilitates secure transactions betw
 | 0.2      | 0x8c2acF6Fb82305f19fbB3F60a53810b17df9BC9B    | Holesky
 | 0.3      | 0xB133765B8beCaf440bAD4f4534a6Dc4BbE87234A    | Holesky
 | 0.4      | 0x77C385fD50164Fde71A6c29732F9F7763AAC6753    | Holesky
+| 0.5      | 0x7Ebd1370491e6F546841bD02ed0772a0c4DAC3B6    | Holesky
 
 
 ## Features

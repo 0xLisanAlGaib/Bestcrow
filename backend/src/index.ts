@@ -1,4 +1,4 @@
-import { ponder } from "@/generated";
+import { ponder } from "ponder:registry";
 import { EscrowCreatedEvents, EscrowAcceptedEvents, EscrowCompletedEvents, ReleaseRequestedEvents, EscrowRefundedEvents, FeesWithdrawnEvents, EscrowRejectedEvents } from "../ponder.schema";
 import { formatUnits } from 'viem'
 
@@ -86,4 +86,3 @@ ponder.on("Bestcrow:FeesWithdrawn", async ({ event, context }) => {
     )
     .onConflictDoNothing();
 });
-

@@ -1,4 +1,4 @@
-import { createConfig } from "@ponder/core";
+import { createConfig } from "ponder";
 import { http } from "viem";
 
 import { BestcrowAbi } from "./abis/BestcrowAbi";
@@ -7,15 +7,15 @@ export default createConfig({
   networks: {
     holesky: {
       chainId: 17000,
-      transport: http(process.env.PONDER_RPC_URL_1),
+      transport: http(process.env.HOLESKY_RPC_URL_17000),
     },
   },
   contracts: {
     Bestcrow: {
       network: "holesky",
       abi: BestcrowAbi,
-      address: "0x77C385fD50164Fde71A6c29732F9F7763AAC6753",
-      startBlock: 3081000,
+      address: "0x7Ebd1370491e6F546841bD02ed0772a0c4DAC3B6",
+      startBlock: 3090600,
     },
   },
 });
