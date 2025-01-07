@@ -20,7 +20,7 @@ import { hexToBigInt, formatUnits } from "viem";
 import dynamic from "next/dynamic";
 import "react-datepicker/dist/react-datepicker.css";
 
-// @ts-expect-error: React-datepicker types are not fully compatible
+// @ts-ignore
 const ReactDatePicker = dynamic(() => import("react-datepicker"), { ssr: false });
 
 // Add CSS to remove spinner buttons
