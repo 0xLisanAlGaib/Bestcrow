@@ -20,7 +20,21 @@ import { hexToBigInt, formatUnits } from "viem";
 import dynamic from "next/dynamic";
 import "react-datepicker/dist/react-datepicker.css";
 
-const ReactDatePicker = dynamic(() => import("react-datepicker"), { ssr: false }) as any;
+const ReactDatePicker = dynamic(() => import("react-datepicker"), {
+  ssr: false,
+}) as React.ComponentType<ReactDatePickerProps>;
+
+interface ReactDatePickerProps {
+  selected: Date;
+  onChange: (date: Date | null) => void;
+  showTimeSelect: boolean;
+  timeFormat: string;
+  timeIntervals: number;
+  dateFormat: string;
+  minDate: Date;
+  className: string;
+  wrapperClassName: string;
+}
 
 // Add CSS to remove spinner buttons
 const styles = `
