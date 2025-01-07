@@ -18,8 +18,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAccount, useReadContract, useReadContracts } from "wagmi";
 import { type Abi } from "viem";
-import { ESCROW_CONTRACT_ADDRESS } from "@/constants/bestcrow";
-import { ESCROW_CONTRACT_ABI } from "@/constants/abi";
+import { BESTCROW_ADDRESS } from "@/constants/bestcrow";
+import { BESTCROW_ABI } from "@/constants/abi";
 import { formatUnits } from "viem";
 
 interface Escrow {
@@ -47,16 +47,16 @@ export default function EscrowPool() {
 
   // Get nextEscrowId from contract
   const { data: nextEscrowId } = useReadContract({
-    address: ESCROW_CONTRACT_ADDRESS,
-    abi: ESCROW_CONTRACT_ABI,
+    address: BESTCROW_ADDRESS,
+    abi: BESTCROW_ABI,
     functionName: "nextEscrowId",
   });
 
   // Fetch all escrow details
   const { data: escrowResults } = useReadContracts({
     contracts: Array.from({ length: Number(nextEscrowId || 0) }, (_, i) => ({
-      address: ESCROW_CONTRACT_ADDRESS as `0x${string}`,
-      abi: ESCROW_CONTRACT_ABI as Abi,
+      address: BESTCROW_ADDRESS as `0x${string}`,
+      abi: BESTCROW_ABI as Abi,
       functionName: "escrowDetails",
       args: [BigInt(i + 1)],
     })),

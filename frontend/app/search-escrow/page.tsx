@@ -7,8 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAccount, useReadContract, useReadContracts } from "wagmi";
 import { WalletIcon, Loader2 } from "lucide-react";
-import { ESCROW_CONTRACT_ADDRESS } from "@/constants/bestcrow";
-import { ESCROW_CONTRACT_ABI } from "@/constants/abi";
+import { BESTCROW_ADDRESS } from "@/constants/bestcrow";
+import { BESTCROW_ABI } from "@/constants/abi";
 import { formatEther } from "viem";
 import { type Address, type Abi } from "viem";
 import Link from "next/link";
@@ -35,16 +35,16 @@ export default function SearchEscrow() {
 
   // Get nextEscrowId from contract
   const { data: nextEscrowId } = useReadContract({
-    address: ESCROW_CONTRACT_ADDRESS,
-    abi: ESCROW_CONTRACT_ABI,
+    address: BESTCROW_ADDRESS,
+    abi: BESTCROW_ABI,
     functionName: "nextEscrowId",
   });
 
   // Fetch all escrow details
   const { data: escrowResults } = useReadContracts({
     contracts: Array.from({ length: Number(nextEscrowId || 0) }, (_, i) => ({
-      address: ESCROW_CONTRACT_ADDRESS as Address,
-      abi: ESCROW_CONTRACT_ABI as Abi,
+      address: BESTCROW_ADDRESS as Address,
+      abi: BESTCROW_ABI as Abi,
       functionName: "escrowDetails",
       args: [BigInt(i + 1)],
     })),

@@ -20,8 +20,8 @@ import {
   Calendar,
 } from "lucide-react";
 import { Timeline } from "@/components/Timeline";
-import { ESCROW_CONTRACT_ADDRESS } from "@/constants/bestcrow";
-import { ESCROW_CONTRACT_ABI } from "@/constants/abi";
+import { BESTCROW_ADDRESS } from "@/constants/bestcrow";
+import { BESTCROW_ABI } from "@/constants/abi";
 import { parseUnits, formatUnits } from "viem";
 
 // Mock function to fetch escrow details
@@ -54,8 +54,8 @@ export default function EscrowDetails() {
   }, [params.id]);
 
   const { data: escrowData } = useReadContract({
-    address: ESCROW_CONTRACT_ADDRESS,
-    abi: ESCROW_CONTRACT_ABI,
+    address: BESTCROW_ADDRESS,
+    abi: BESTCROW_ABI,
     functionName: "escrowDetails",
     args: [escrowId],
   });
@@ -188,8 +188,8 @@ export default function EscrowDetails() {
   const handleRequestRelease = async () => {
     try {
       await writeContract({
-        address: ESCROW_CONTRACT_ADDRESS,
-        abi: ESCROW_CONTRACT_ABI,
+        address: BESTCROW_ADDRESS,
+        abi: BESTCROW_ABI,
         functionName: "requestRelease",
         args: [escrowId],
       });
@@ -205,8 +205,8 @@ export default function EscrowDetails() {
       const collateralAmount = (BigInt(escrowDetails[3]) * BigInt(5000)) / BigInt(10000); // 50% collateral
 
       await writeContract({
-        address: ESCROW_CONTRACT_ADDRESS,
-        abi: ESCROW_CONTRACT_ABI,
+        address: BESTCROW_ADDRESS,
+        abi: BESTCROW_ABI,
         functionName: "acceptEscrow",
         args: [escrowId],
         value: escrowDetails[8] ? collateralAmount : BigInt(0), // Only send value if it's an ETH escrow
@@ -221,8 +221,8 @@ export default function EscrowDetails() {
   const handleApproveRelease = async () => {
     try {
       await writeContract({
-        address: ESCROW_CONTRACT_ADDRESS,
-        abi: ESCROW_CONTRACT_ABI,
+        address: BESTCROW_ADDRESS,
+        abi: BESTCROW_ABI,
         functionName: "approveRelease",
         args: [escrowId],
       });
@@ -235,8 +235,8 @@ export default function EscrowDetails() {
     try {
       setPendingAction("reject");
       await writeContract({
-        address: ESCROW_CONTRACT_ADDRESS,
-        abi: ESCROW_CONTRACT_ABI,
+        address: BESTCROW_ADDRESS,
+        abi: BESTCROW_ABI,
         functionName: "rejectEscrow",
         args: [escrowId],
       });
@@ -251,8 +251,8 @@ export default function EscrowDetails() {
     try {
       setPendingAction("refund");
       await writeContract({
-        address: ESCROW_CONTRACT_ADDRESS,
-        abi: ESCROW_CONTRACT_ABI,
+        address: BESTCROW_ADDRESS,
+        abi: BESTCROW_ABI,
         functionName: "refundExpiredEscrow",
         args: [escrowId],
       });

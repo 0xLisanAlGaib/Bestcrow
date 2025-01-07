@@ -12,8 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
-import { ESCROW_CONTRACT_ADDRESS } from "@/constants/bestcrow";
-import { ESCROW_CONTRACT_ABI } from "@/constants/abi";
+import { BESTCROW_ADDRESS } from "@/constants/bestcrow";
+import { BESTCROW_ABI } from "@/constants/abi";
 import { parseUnits, parseEther } from "viem";
 import { ESCROW_FEE, DENOMINATOR, ESCROW_FEE_BASIS_POINTS } from "@/constants/fees";
 import { hexToString, hexToBigInt, formatUnits } from "viem";
@@ -102,8 +102,8 @@ export default function CreateEscrow() {
 
     try {
       writeContract({
-        abi: ESCROW_CONTRACT_ABI,
-        address: ESCROW_CONTRACT_ADDRESS,
+        abi: BESTCROW_ABI,
+        address: BESTCROW_ADDRESS,
         functionName: "createEscrow",
         args: [token, amount, expiryDate, receiver, title, description],
         value: msgValue,
