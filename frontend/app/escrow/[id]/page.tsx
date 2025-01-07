@@ -542,7 +542,7 @@ export default function EscrowDetails() {
             <CardContent className="space-y-2">
               <p className="text-white">
                 <FileText className="inline mr-2 text-white" />
-                ID: {escrow.id}
+                ID: {escrow?.id}
               </p>
               <p className="text-white">
                 <Banknote className="inline mr-2 text-white" />
