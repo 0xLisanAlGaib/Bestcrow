@@ -41,6 +41,16 @@ export default function EscrowDetails() {
   const [escrowDetails, setEscrowDetails] = useState<any>(null);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
 
+  // Add refresh interval
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // This will trigger a re-fetch of the contract data
+      setLoading(true);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     const loadEscrowDetails = async () => {
       if (params.id) {

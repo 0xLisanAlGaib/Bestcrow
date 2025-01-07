@@ -33,6 +33,17 @@ export default function SearchEscrow() {
   const [isLoading, setIsLoading] = useState(false);
   const { address: walletAddress, isConnected } = useAccount();
 
+  // Add refresh interval
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (searchTerm) {
+        handleSearch(new Event("refresh") as any);
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [searchTerm]);
+
   // Get nextEscrowId from contract
   const { data: nextEscrowId } = useReadContract({
     address: BESTCROW_ADDRESS,

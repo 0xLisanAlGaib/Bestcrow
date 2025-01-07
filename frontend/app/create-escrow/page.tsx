@@ -80,6 +80,18 @@ export default function CreateEscrow() {
   });
   const [escrowType, setEscrowType] = useState("standard");
 
+  // Add refresh interval for transaction status
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (hash) {
+        // This will trigger a re-fetch of the transaction status
+        setIsSubmitting(true);
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [hash]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormState((prev) => ({ ...prev, [name]: value }));

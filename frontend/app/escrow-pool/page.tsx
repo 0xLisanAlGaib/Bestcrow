@@ -45,6 +45,16 @@ export default function EscrowPool() {
   const [loading, setLoading] = useState(true);
   const { address: connectedAddress } = useAccount();
 
+  // Add refresh interval
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // This will trigger a re-fetch of the contracts
+      setLoading(true);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   // Get nextEscrowId from contract
   const { data: nextEscrowId } = useReadContract({
     address: BESTCROW_ADDRESS,
