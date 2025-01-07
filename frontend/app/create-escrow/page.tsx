@@ -20,8 +20,7 @@ import { hexToBigInt, formatUnits } from "viem";
 import dynamic from "next/dynamic";
 import "react-datepicker/dist/react-datepicker.css";
 
-// @ts-ignore
-const ReactDatePicker = dynamic(() => import("react-datepicker"), { ssr: false });
+const ReactDatePicker = dynamic(() => import("react-datepicker"), { ssr: false }) as any;
 
 // Add CSS to remove spinner buttons
 const styles = `
@@ -50,7 +49,6 @@ interface CustomDatePickerProps {
 }
 
 const CustomDatePicker = ({ selected, onChange }: CustomDatePickerProps) => (
-  // @ts-expect-error: React-datepicker component props are not fully typed
   <ReactDatePicker
     selected={selected}
     onChange={onChange}
