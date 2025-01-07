@@ -21,11 +21,7 @@ contract BestcrowTest is Test {
     );
     event EscrowAccepted(uint256 indexed escrowId, address indexed receiver);
     event ReleaseRequested(uint256 indexed escrowId);
-    event EscrowCompleted(
-        uint256 indexed escrowId,
-        address indexed receiver,
-        uint256 amount
-    );
+    event EscrowCompleted(uint256 indexed escrowId, address indexed receiver, uint256 amount);
     event EscrowRefunded(uint256 indexed escrowId, address indexed depositor);
     event FeesWithdrawn(address token, uint256 amount);
     event EscrowRejected(uint256 indexed escrowId, address indexed receiver);
@@ -121,12 +117,7 @@ contract BestcrowTest is Test {
         vm.prank(depositor);
         vm.expectRevert("Title cannot be empty");
         bestcrow.createEscrow{value: totalAmount}(
-            address(0),
-            AMOUNT,
-            block.timestamp + DAYS_TO_EXPIRY * 1 days,
-            receiver,
-            "",
-            "This is a test escrow"
+            address(0), AMOUNT, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver, "", "This is a test escrow"
         );
     }
 
@@ -138,16 +129,11 @@ contract BestcrowTest is Test {
 
         vm.prank(depositor);
         uint256 escrowId = bestcrow.createEscrow{value: totalAmount}(
-            address(0),
-            AMOUNT,
-            block.timestamp + DAYS_TO_EXPIRY * 1 days,
-            receiver,
-            "Test ETH Escrow",
-            ""
+            address(0), AMOUNT, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver, "Test ETH Escrow", ""
         );
 
         string memory description_;
-        (, , , , , , , , , , , description_) = bestcrow.escrowDetails(escrowId);
+        (,,,,,,,,,,, description_) = bestcrow.escrowDetails(escrowId);
         assertEq(description_, "");
     }
 
@@ -157,26 +143,19 @@ contract BestcrowTest is Test {
         uint256 adminFee = (AMOUNT * ADMIN_FEE_BASIS_POINTS) / 10000;
         uint256 totalAmount = AMOUNT + adminFee;
 
-        string
-            memory longTitle = "This is a very long title for testing purposes that should still work fine with the escrow contract";
-        string
-            memory longDescription = "This is an extremely long description that contains multiple sentences. It should test the contract's ability to handle longer strings. This could be a detailed explanation of the escrow terms and conditions. The contract should handle this without any issues.";
+        string memory longTitle =
+            "This is a very long title for testing purposes that should still work fine with the escrow contract";
+        string memory longDescription =
+            "This is an extremely long description that contains multiple sentences. It should test the contract's ability to handle longer strings. This could be a detailed explanation of the escrow terms and conditions. The contract should handle this without any issues.";
 
         vm.prank(depositor);
         uint256 escrowId = bestcrow.createEscrow{value: totalAmount}(
-            address(0),
-            AMOUNT,
-            block.timestamp + DAYS_TO_EXPIRY * 1 days,
-            receiver,
-            longTitle,
-            longDescription
+            address(0), AMOUNT, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver, longTitle, longDescription
         );
 
         string memory title_;
         string memory description_;
-        (, , , , , , , , , , title_, description_) = bestcrow.escrowDetails(
-            escrowId
-        );
+        (,,,,,,,,,, title_, description_) = bestcrow.escrowDetails(escrowId);
         assertEq(title_, longTitle);
         assertEq(description_, longDescription);
     }
@@ -205,7 +184,7 @@ contract BestcrowTest is Test {
         bestcrow.acceptEscrow{value: collateralAmount}(escrowId);
 
         bool isActive_;
-        (, , , , , , isActive_, , , , , ) = bestcrow.escrowDetails(escrowId);
+        (,,,,,, isActive_,,,,,) = bestcrow.escrowDetails(escrowId);
         assertTrue(isActive_);
     }
 
@@ -308,11 +287,8 @@ contract BestcrowTest is Test {
 
         // Verify the escrow is completed and fees are available
         bool isCompleted_;
-        (, , , , , , , isCompleted_, , , , ) = bestcrow.escrowDetails(escrowId);
-        assertTrue(
-            isCompleted_,
-            "Escrow should be completed before withdrawing fees"
-        );
+        (,,,,,,, isCompleted_,,,,) = bestcrow.escrowDetails(escrowId);
+        assertTrue(isCompleted_, "Escrow should be completed before withdrawing fees");
 
         // Verify the contract balance increased by the admin fee
         assertEq(
@@ -322,11 +298,7 @@ contract BestcrowTest is Test {
         );
 
         // Verify that fees were accrued
-        assertEq(
-            bestcrow.accruedFeesETH(),
-            adminFee,
-            "Fees should be accrued before withdrawal"
-        );
+        assertEq(bestcrow.accruedFeesETH(), adminFee, "Fees should be accrued before withdrawal");
 
         // Store owner's balance before withdrawal
         uint256 ownerBalanceBefore = bestcrow.owner().balance;
@@ -336,25 +308,13 @@ contract BestcrowTest is Test {
         bestcrow.withdrawFees(address(0));
 
         // Verify the fees were withdrawn correctly
-        assertEq(
-            bestcrow.owner().balance - ownerBalanceBefore,
-            adminFee,
-            "Owner should receive the correct admin fee"
-        );
+        assertEq(bestcrow.owner().balance - ownerBalanceBefore, adminFee, "Owner should receive the correct admin fee");
 
         // Verify the contract balance decreased by the admin fee
-        assertEq(
-            address(bestcrow).balance,
-            initialContractBalance,
-            "Contract balance should return to initial amount"
-        );
+        assertEq(address(bestcrow).balance, initialContractBalance, "Contract balance should return to initial amount");
 
         // Verify that fees were reset to zero
-        assertEq(
-            bestcrow.accruedFeesETH(),
-            0,
-            "Fees should be zero after withdrawal"
-        );
+        assertEq(bestcrow.accruedFeesETH(), 0, "Fees should be zero after withdrawal");
     }
 
     // ERC20 specific tests
@@ -395,10 +355,7 @@ contract BestcrowTest is Test {
         bestcrow.approveRelease(escrowId);
 
         uint256 receiverBalanceAfter = token.balanceOf(receiver);
-        console.log(
-            "Amount received:",
-            receiverBalanceAfter - receiverBalanceBefore
-        );
+        console.log("Amount received:", receiverBalanceAfter - receiverBalanceBefore);
 
         assertEq(
             receiverBalanceAfter - receiverBalanceBefore,
@@ -429,10 +386,7 @@ contract BestcrowTest is Test {
         vm.prank(depositor);
         bestcrow.refundExpiredEscrow(escrowId);
 
-        assertEq(
-            token.balanceOf(depositor) - depositorBalanceBefore,
-            totalAmount
-        );
+        assertEq(token.balanceOf(depositor) - depositorBalanceBefore, totalAmount);
     }
 
     /// @notice Test withdrawal of accumulated ERC20 fees
@@ -516,12 +470,7 @@ contract BestcrowTest is Test {
 
         vm.prank(depositor);
         bestcrow.createEscrow{value: totalAmount}(
-            address(0),
-            AMOUNT,
-            block.timestamp - 1,
-            receiver,
-            "Past Expiry Test",
-            "Testing past expiry date validation"
+            address(0), AMOUNT, block.timestamp - 1, receiver, "Past Expiry Test", "Testing past expiry date validation"
         );
     }
 
@@ -817,7 +766,7 @@ contract BestcrowTest is Test {
         bestcrow.acceptEscrow{value: collateralAmount}(escrowId);
 
         bool isActive_;
-        (, , , , , , isActive_, , , , , ) = bestcrow.escrowDetails(escrowId);
+        (,,,,,, isActive_,,,,,) = bestcrow.escrowDetails(escrowId);
         assertTrue(isActive_);
     }
 
@@ -865,7 +814,7 @@ contract BestcrowTest is Test {
         );
 
         uint256 amount_;
-        (, , , amount_, , , , , , , , ) = bestcrow.escrowDetails(escrowId);
+        (,,, amount_,,,,,,,,) = bestcrow.escrowDetails(escrowId);
         assertEq(amount_, minAmount);
     }
 
@@ -889,7 +838,7 @@ contract BestcrowTest is Test {
         );
 
         uint256 amount_;
-        (, , , amount_, , , , , , , , ) = bestcrow.escrowDetails(escrowId);
+        (,,, amount_,,,,,,,,) = bestcrow.escrowDetails(escrowId);
         assertEq(amount_, largeAmount);
     }
 
@@ -928,18 +877,15 @@ contract BestcrowTest is Test {
         // Verify both escrows are independent
         address depositor1_;
         address depositor2_;
-        (depositor1_, , , , , , , , , , , ) = bestcrow.escrowDetails(escrowId1);
-        (depositor2_, , , , , , , , , , , ) = bestcrow.escrowDetails(escrowId2);
+        (depositor1_,,,,,,,,,,,) = bestcrow.escrowDetails(escrowId1);
+        (depositor2_,,,,,,,,,,,) = bestcrow.escrowDetails(escrowId2);
 
         assertEq(depositor1_, depositor);
         assertEq(depositor2_, depositor);
     }
 
     // Helper function to log escrow state
-    function logEscrowState(
-        string memory stage,
-        uint256 escrowId
-    ) internal view {
+    function logEscrowState(string memory stage, uint256 escrowId) internal view {
         address depositor_;
         address receiver_;
         address token_;
@@ -1011,31 +957,14 @@ contract BestcrowTest is Test {
         bestcrow.rejectEscrow(escrowId);
 
         // Verify escrow state
-        (
-            ,
-            ,
-            ,
-            ,
-            ,
-            ,
-            bool isActive,
-            bool isCompleted,
-            ,
-            bool releaseRequested,
-            ,
-
-        ) = bestcrow.escrowDetails(escrowId);
+        (,,,,,, bool isActive, bool isCompleted,, bool releaseRequested,,) = bestcrow.escrowDetails(escrowId);
 
         assertFalse(isActive, "Escrow should not be active");
         assertTrue(isCompleted, "Escrow should be completed");
         assertFalse(releaseRequested, "Release should not be requested");
 
         // Verify funds returned
-        assertEq(
-            depositor.balance - depositorBalanceBefore,
-            totalAmount,
-            "Full amount should be returned to depositor"
-        );
+        assertEq(depositor.balance - depositorBalanceBefore, totalAmount, "Full amount should be returned to depositor");
     }
 
     /// @notice Test successful rejection of an ERC20 escrow
@@ -1065,20 +994,7 @@ contract BestcrowTest is Test {
         bestcrow.rejectEscrow(escrowId);
 
         // Verify escrow state
-        (
-            ,
-            ,
-            ,
-            ,
-            ,
-            ,
-            bool isActive,
-            bool isCompleted,
-            ,
-            bool releaseRequested,
-            ,
-
-        ) = bestcrow.escrowDetails(escrowId);
+        (,,,,,, bool isActive, bool isCompleted,, bool releaseRequested,,) = bestcrow.escrowDetails(escrowId);
 
         assertFalse(isActive, "Escrow should not be active");
         assertTrue(isCompleted, "Escrow should be completed");

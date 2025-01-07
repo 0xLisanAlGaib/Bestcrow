@@ -343,12 +343,7 @@ contract BestcrowGasTest is Test {
         vm.prank(depositor);
         uint256 gasBefore = gasleft();
         bestcrow.createEscrow{value: totalAmount}(
-            address(0),
-            amount,
-            block.timestamp + DAYS_TO_EXPIRY * 1 days,
-            receiver,
-            "Short",
-            "Brief"
+            address(0), amount, block.timestamp + DAYS_TO_EXPIRY * 1 days, receiver, "Short", "Brief"
         );
         uint256 shortStringsGas = gasBefore - gasleft();
 
@@ -440,11 +435,7 @@ contract BestcrowGasTest is Test {
         uint256 gasUsed = gasBefore - gasleft();
 
         // Additional verification for createdAt
-        assertEq(
-            _createdAt,
-            block.timestamp,
-            "Creation timestamp should match block timestamp"
-        );
+        assertEq(_createdAt, block.timestamp, "Creation timestamp should match block timestamp");
 
         console.log("Gas used for reading escrow details:", gasUsed);
         assertTrue(gasUsed < 30000); // Reading should be relatively cheap
