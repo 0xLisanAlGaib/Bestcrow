@@ -22,7 +22,27 @@ import {
 import { Timeline } from "@/components/Timeline";
 import { BESTCROW_ADDRESS } from "@/constants/bestcrow";
 import { BESTCROW_ABI } from "@/constants/abi";
-import { parseUnits, formatUnits } from "viem";
+import { formatUnits } from "viem";
+
+interface EscrowDetails {
+  depositor: string;
+  receiver: string;
+  token: string;
+  amount: bigint;
+  expiryDate: bigint;
+  title: string;
+  isActive: boolean;
+  isCompleted: boolean;
+  isEthEscrow: boolean;
+  releaseRequested: boolean;
+  description: string;
+}
+
+interface TimelineStep {
+  title: string;
+  description: string;
+  completed: boolean;
+}
 
 // Mock function to fetch escrow details
 const fetchEscrowDetails = async (id: string) => {
@@ -35,21 +55,30 @@ export default function EscrowDetails() {
   const params = useParams();
   const { address: walletAddress } = useAccount();
   const { writeContractAsync: writeContract, isPending } = useWriteContract();
-  const [escrow, setEscrow] = useState<any>(null);
+  const [escrow, setEscrow] = useState<{ id: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [escrowId, setEscrowId] = useState<string>("0");
-  const [escrowDetails, setEscrowDetails] = useState<any>(null);
+  const [escrowDetails, setEscrowDetails] = useState<EscrowDetails | null>(null);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
+
+  const { data: escrowData, refetch: refetchEscrowData } = useReadContract({
+    address: BESTCROW_ADDRESS,
+    abi: BESTCROW_ABI,
+    functionName: "escrowDetails",
+    args: [escrowId],
+  });
 
   // Add refresh interval
   useEffect(() => {
     const interval = setInterval(() => {
       // This will trigger a re-fetch of the contract data
-      setLoading(true);
-    }, 5000);
+      if (escrowId !== "0") {
+        refetchEscrowData();
+      }
+    }, 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [escrowId, refetchEscrowData]);
 
   useEffect(() => {
     const loadEscrowDetails = async () => {
@@ -63,26 +92,57 @@ export default function EscrowDetails() {
     loadEscrowDetails();
   }, [params.id]);
 
-  const { data: escrowData } = useReadContract({
-    address: BESTCROW_ADDRESS,
-    abi: BESTCROW_ABI,
-    functionName: "escrowDetails",
-    args: [escrowId],
-  });
-
   useEffect(() => {
-    if (escrowData && escrowData !== undefined) {
-      console.log(escrowData);
-      setEscrowDetails(escrowData);
+    if (escrowData) {
+      const [
+        depositor,
+        receiver,
+        token,
+        amount,
+        expiryDate,
+        createdAt,
+        isActive,
+        isCompleted,
+        isEthEscrow,
+        releaseRequested,
+        title,
+        description,
+      ] = escrowData as [
+        string,
+        string,
+        string,
+        bigint,
+        bigint,
+        bigint,
+        boolean,
+        boolean,
+        boolean,
+        boolean,
+        string,
+        string
+      ];
+
+      setEscrowDetails({
+        depositor,
+        receiver,
+        token,
+        amount,
+        expiryDate,
+        title,
+        isActive,
+        isCompleted,
+        isEthEscrow,
+        releaseRequested,
+        description,
+      });
+      setLoading(false);
     }
   }, [escrowData]);
 
-  const getEscrowStatus = (details: any) => {
+  const getEscrowStatus = (details: EscrowDetails | null) => {
     if (!details) return "unknown";
 
-    const isActive = details[6];
-    const isCompleted = details[7];
-    const releaseRequested = details[9];
+    const { isActive, isCompleted, releaseRequested } = details;
 
     if (!isActive && !releaseRequested && isCompleted) return "expired";
     if (!isActive && !isCompleted && !releaseRequested) return "pending";
@@ -140,18 +200,15 @@ export default function EscrowDetails() {
     );
   };
 
-  const truncateAddress = (address: string) => {
+  const truncateAddress = (address: string | undefined | null) => {
+    if (!address) return "Unknown";
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
-  const getTimelineSteps = (details: any) => {
+  const getTimelineSteps = (details: EscrowDetails | null): TimelineStep[] => {
     if (!details) return [];
 
-    const isActive = details[6];
-    const isCompleted = details[7];
-    const releaseRequested = details[9];
-    const depositor = details[0];
-    const receiver = details[1];
+    const { isActive, isCompleted, releaseRequested, depositor, receiver } = details;
 
     if (!isActive && !releaseRequested && isCompleted) {
       return [
@@ -212,14 +269,14 @@ export default function EscrowDetails() {
     try {
       if (!escrowDetails) return;
       setPendingAction("accept");
-      const collateralAmount = (BigInt(escrowDetails[3]) * BigInt(5000)) / BigInt(10000); // 50% collateral
+      const collateralAmount = (escrowDetails.amount * BigInt(5000)) / BigInt(10000); // 50% collateral
 
       await writeContract({
         address: BESTCROW_ADDRESS,
         abi: BESTCROW_ABI,
         functionName: "acceptEscrow",
         args: [escrowId],
-        value: escrowDetails[8] ? collateralAmount : BigInt(0), // Only send value if it's an ETH escrow
+        value: escrowDetails.isEthEscrow ? collateralAmount : BigInt(0), // Only send value if it's an ETH escrow
       });
     } catch (error) {
       console.error("Error accepting escrow:", error);
@@ -273,11 +330,11 @@ export default function EscrowDetails() {
     }
   };
 
-  const isParticipant = (details: any) => {
+  const isParticipant = (details: EscrowDetails | null) => {
     if (!walletAddress || !details) return false;
     return (
-      walletAddress.toLowerCase() === details[0]?.toLowerCase() ||
-      walletAddress.toLowerCase() === details[1]?.toLowerCase()
+      walletAddress.toLowerCase() === details.depositor.toLowerCase() ||
+      walletAddress.toLowerCase() === details.receiver.toLowerCase()
     );
   };
 
@@ -285,10 +342,10 @@ export default function EscrowDetails() {
     if (!escrowDetails) return null;
 
     const status = getEscrowStatus(escrowDetails);
-    const isDepositor = walletAddress?.toLowerCase() === escrowDetails[0]?.toLowerCase();
-    const isReceiver = walletAddress?.toLowerCase() === escrowDetails[1]?.toLowerCase();
+    const isDepositor = walletAddress?.toLowerCase() === escrowDetails.depositor.toLowerCase();
+    const isReceiver = walletAddress?.toLowerCase() === escrowDetails.receiver.toLowerCase();
     const currentTimestamp = Math.floor(Date.now() / 1000);
-    const isExpired = currentTimestamp > Number(escrowDetails[4]);
+    const isExpired = currentTimestamp > Number(escrowDetails.expiryDate);
 
     if (status === "expired") {
       return (
@@ -468,7 +525,7 @@ export default function EscrowDetails() {
         className="max-w-4xl mx-auto"
       >
         <h1 className="text-4xl font-bold mb-8 text-center text-white">
-          {escrowDetails ? escrowDetails[10] : "Loading..."}
+          {escrowDetails ? escrowDetails.title : "Loading..."}
         </h1>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -491,10 +548,10 @@ export default function EscrowDetails() {
                 <Banknote className="inline mr-2 text-white" />
                 Amount:{" "}
                 {escrowDetails !== null
-                  ? `${formatUnits(escrowDetails[3], 18)} ${
-                      escrowDetails[7]
+                  ? `${formatUnits(escrowDetails.amount, 18)} ${
+                      escrowDetails.isEthEscrow
                         ? "ETH"
-                        : escrowDetails[2] === "0x0000000000000000000000000000000000000000"
+                        : escrowDetails.token === "0x0000000000000000000000000000000000000000"
                         ? "ETH"
                         : "Tokens"
                     }`
@@ -502,11 +559,11 @@ export default function EscrowDetails() {
               </p>
               <p className="text-white">
                 <Calendar className="inline mr-2 text-white" />
-                Created: {escrowDetails !== null ? formatDate(escrowDetails[5]) : "Loading..."}
+                Created: {escrowDetails !== null ? formatDate(Number(escrowDetails.expiryDate)) : "Loading..."}
               </p>
               <p className="text-white">
                 <Calendar className="inline mr-2 text-white" />
-                Expires: {escrowDetails !== null ? formatDate(escrowDetails[4]) : "NA"}
+                Expires: {escrowDetails !== null ? formatDate(Number(escrowDetails.expiryDate)) : "NA"}
               </p>
             </CardContent>
           </Card>
@@ -518,11 +575,11 @@ export default function EscrowDetails() {
             <CardContent className="space-y-2">
               <p className="text-white">
                 <User className="inline mr-2 text-white" />
-                Depositor: {escrowDetails !== null ? truncateAddress(escrowDetails[0]) : "NA"}
+                Depositor: {escrowDetails !== null ? truncateAddress(escrowDetails.depositor) : "NA"}
               </p>
               <p className="text-white">
                 <UserCheck className="inline mr-2 text-white" />
-                Receiver: {escrowDetails !== null ? truncateAddress(escrowDetails[1]) : "NA"}
+                Receiver: {escrowDetails !== null ? truncateAddress(escrowDetails.receiver) : "NA"}
               </p>
             </CardContent>
           </Card>
@@ -541,7 +598,7 @@ export default function EscrowDetails() {
               <CardTitle className="text-white">Description</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-white">{escrowDetails ? escrowDetails[11] : "Loading..."}</p>
+              <p className="text-white">{escrowDetails ? escrowDetails.description : "Loading..."}</p>
             </CardContent>
           </Card>
         </div>

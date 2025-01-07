@@ -14,13 +14,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { BESTCROW_ADDRESS } from "@/constants/bestcrow";
 import { BESTCROW_ABI } from "@/constants/abi";
-import { parseUnits, parseEther } from "viem";
-import { ESCROW_FEE, DENOMINATOR, ESCROW_FEE_BASIS_POINTS } from "@/constants/fees";
-import { hexToString, hexToBigInt, formatUnits } from "viem";
+import { parseUnits } from "viem";
+import { ESCROW_FEE, DENOMINATOR } from "@/constants/fees";
+import { hexToBigInt, formatUnits } from "viem";
 import dynamic from "next/dynamic";
 import "react-datepicker/dist/react-datepicker.css";
 
-// @ts-ignore
+// @ts-expect-error: React-datepicker types are not fully compatible
 const ReactDatePicker = dynamic(() => import("react-datepicker"), { ssr: false });
 
 // Add CSS to remove spinner buttons
@@ -50,7 +50,7 @@ interface CustomDatePickerProps {
 }
 
 const CustomDatePicker = ({ selected, onChange }: CustomDatePickerProps) => (
-  // @ts-ignore
+  // @ts-expect-error: React-datepicker component props are not fully typed
   <ReactDatePicker
     selected={selected}
     onChange={onChange}
@@ -87,7 +87,7 @@ export default function CreateEscrow() {
         // This will trigger a re-fetch of the transaction status
         setIsSubmitting(true);
       }
-    }, 5000);
+    }, 1000);
 
     return () => clearInterval(interval);
   }, [hash]);

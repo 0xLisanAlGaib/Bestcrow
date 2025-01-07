@@ -45,25 +45,15 @@ export default function EscrowPool() {
   const [loading, setLoading] = useState(true);
   const { address: connectedAddress } = useAccount();
 
-  // Add refresh interval
-  useEffect(() => {
-    const interval = setInterval(() => {
-      // This will trigger a re-fetch of the contracts
-      setLoading(true);
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, []);
-
   // Get nextEscrowId from contract
-  const { data: nextEscrowId } = useReadContract({
+  const { data: nextEscrowId, refetch: refetchNextEscrowId } = useReadContract({
     address: BESTCROW_ADDRESS,
     abi: BESTCROW_ABI,
     functionName: "nextEscrowId",
   });
 
   // Fetch all escrow details
-  const { data: escrowResults } = useReadContracts({
+  const { data: escrowResults, refetch: refetchEscrowResults } = useReadContracts({
     contracts: Array.from({ length: Number(nextEscrowId || 0) }, (_, i) => ({
       address: BESTCROW_ADDRESS as `0x${string}`,
       abi: BESTCROW_ABI as Abi,
@@ -71,6 +61,17 @@ export default function EscrowPool() {
       args: [BigInt(i + 1)],
     })),
   });
+
+  // Add refresh interval
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // This will trigger a re-fetch of the contracts
+      refetchNextEscrowId();
+      refetchEscrowResults();
+    }, 1000); // Update every second
+
+    return () => clearInterval(interval);
+  }, [refetchNextEscrowId, refetchEscrowResults]);
 
   useEffect(() => {
     if (!escrowResults) return;

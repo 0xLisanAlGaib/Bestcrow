@@ -33,35 +33,7 @@ export default function SearchEscrow() {
   const [isLoading, setIsLoading] = useState(false);
   const { address: walletAddress, isConnected } = useAccount();
 
-  // Add refresh interval
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (searchTerm) {
-        handleSearch(new Event("refresh") as any);
-      }
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [searchTerm]);
-
-  // Get nextEscrowId from contract
-  const { data: nextEscrowId } = useReadContract({
-    address: BESTCROW_ADDRESS,
-    abi: BESTCROW_ABI,
-    functionName: "nextEscrowId",
-  });
-
-  // Fetch all escrow details
-  const { data: escrowResults } = useReadContracts({
-    contracts: Array.from({ length: Number(nextEscrowId || 0) }, (_, i) => ({
-      address: BESTCROW_ADDRESS as Address,
-      abi: BESTCROW_ABI as Abi,
-      functionName: "escrowDetails",
-      args: [BigInt(i + 1)],
-    })),
-  });
-
-  const handleSearch = async (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent | CustomEvent) => {
     e.preventDefault();
     if (!isConnected) {
       alert("Please connect your wallet first");
@@ -131,6 +103,34 @@ export default function SearchEscrow() {
       setIsLoading(false);
     }
   };
+
+  // Add refresh interval
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (searchTerm) {
+        handleSearch(new CustomEvent("refresh"));
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [searchTerm, handleSearch]);
+
+  // Get nextEscrowId from contract
+  const { data: nextEscrowId } = useReadContract({
+    address: BESTCROW_ADDRESS,
+    abi: BESTCROW_ABI,
+    functionName: "nextEscrowId",
+  });
+
+  // Fetch all escrow details
+  const { data: escrowResults } = useReadContracts({
+    contracts: Array.from({ length: Number(nextEscrowId || 0) }, (_, i) => ({
+      address: BESTCROW_ADDRESS as Address,
+      abi: BESTCROW_ABI as Abi,
+      functionName: "escrowDetails",
+      args: [BigInt(i + 1)],
+    })),
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0a192f] to-[#112240] text-white p-4 pt-24">
