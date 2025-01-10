@@ -5,16 +5,16 @@ import { BestcrowAbi } from "./abis/BestcrowAbi";
 
 export default createConfig({
   networks: {
-    holesky: {
-      chainId: 17000,
-      transport: http(process.env.HOLESKY_RPC_URL_17000),
+    arbitrum: {
+      chainId: 42161,
+      transport: http(process.env.ARBITRUM_RPC_URL_42161),
     },
   },
   contracts: {
     Bestcrow: {
-      network: "holesky",
+      network: "arbitrum",
       abi: BestcrowAbi,
-      address: "0x7Ebd1370491e6F546841bD02ed0772a0c4DAC3B6",
+      address: "0x718D184786561e6D12a7fe66aD71504Ce90aEee3",
       startBlock: 3090600,
     },
   },
