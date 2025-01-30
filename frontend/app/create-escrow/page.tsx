@@ -11,14 +11,15 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { useWriteContract, useWaitForTransactionReceipt, useAccount } from "wagmi";
 import { BESTCROW_ADDRESS } from "@/constants/bestcrow";
 import { BESTCROW_ABI } from "@/constants/abi";
 import { parseUnits } from "viem";
 import { ESCROW_FEE, DENOMINATOR } from "@/constants/fees";
-import { hexToBigInt, formatUnits } from "viem";
+import { hexToBigInt, formatUnits, isAddress } from "viem";
 import dynamic from "next/dynamic";
 import "react-datepicker/dist/react-datepicker.css";
+import { ConnectKitButton } from "connectkit";
 
 const ReactDatePicker = dynamic(() => import("react-datepicker"), {
   ssr: false,
@@ -78,6 +79,7 @@ const CustomDatePicker = ({ selected, onChange }: CustomDatePickerProps) => (
 
 export default function CreateEscrow() {
   const router = useRouter();
+  const { address, isConnected } = useAccount();
   const { data: hash, isPending, writeContract } = useWriteContract();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -91,6 +93,16 @@ export default function CreateEscrow() {
     expiryDate: new Date(),
   });
   const [escrowType, setEscrowType] = useState("standard");
+  const [isReceiverValid, setIsReceiverValid] = useState(true);
+
+  // Add validation for receiver address
+  useEffect(() => {
+    if (formState.receiver) {
+      setIsReceiverValid(isAddress(formState.receiver));
+    } else {
+      setIsReceiverValid(true); // Empty input is considered valid
+    }
+  }, [formState.receiver]);
 
   // Add refresh interval for transaction status
   useEffect(() => {
@@ -237,8 +249,13 @@ export default function CreateEscrow() {
                     value={formState.receiver}
                     onChange={handleInputChange}
                     placeholder="0x..."
-                    className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:bg-gray-700"
+                    className={`bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:bg-gray-700 ${
+                      !isReceiverValid && formState.receiver ? 'border-red-500' : ''
+                    }`}
                   />
+                  {!isReceiverValid && formState.receiver && (
+                    <p className="text-red-500 text-sm mt-1">Address Invalid</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="asset" className="text-white">
@@ -329,23 +346,37 @@ export default function CreateEscrow() {
               </form>
             </CardContent>
             <CardFooter>
-              <Button
-                onClick={handleSubmit}
-                disabled={isSubmitting || isPending || isConfirming || escrowType === "milestone"}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition duration-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmitting || isPending || isConfirming ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {isConfirming ? "Confirming Transaction..." : "Creating Escrow..."}
-                  </>
-                ) : (
-                  <>
-                    Create Escrow
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </>
-                )}
-              </Button>
+              {isConnected ? (
+                <Button
+                  onClick={handleSubmit}
+                  disabled={isSubmitting || isPending || isConfirming || escrowType === "milestone"}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition duration-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting || isPending || isConfirming ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {isConfirming ? "Confirming Transaction..." : "Creating Escrow..."}
+                    </>
+                  ) : (
+                    <>
+                      Create Escrow
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </>
+                  )}
+                </Button>
+              ) : (
+                <ConnectKitButton.Custom>
+                  {({ show }) => (
+                    <Button
+                      onClick={show}
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition duration-300 flex items-center justify-center"
+                    >
+                      Connect Wallet
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  )}
+                </ConnectKitButton.Custom>
+              )}
             </CardFooter>
           </Card>
         </motion.div>

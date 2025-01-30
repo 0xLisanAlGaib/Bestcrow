@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Solidity](https://img.shields.io/badge/Solidity-0.8.24-blue.svg)](https://soliditylang.org/)
 
-A secure, decentralized escrow protocol for trustless peer-to-peer transactions supporting ETH and ERC20 tokens on multiple networks. Built with OpenZeppelin's secure components, it ensures safe and transparent transactions with built-in collateral requirements.
+A secure, decentralized escrow protocol for trustless peer-to-peer transactions supporting ETH and ERC20 tokens on Arbitrum. Built with OpenZeppelin's secure components, it ensures safe and transparent transactions with built-in collateral requirements.
 
 <div align="center">
 
